@@ -64,9 +64,13 @@ export function runCoordinatesSelfCheck() {
   return { ok: errors.length === 0, errors }
 }
 
-const result = runCoordinatesSelfCheck()
-if (!result.ok) {
-  console.error('coordinates self-check failed:', result.errors)
-  process.exit(1)
+const isDirectRun = process.argv[1]?.endsWith('coordinatesSelfCheck.js')
+
+if (isDirectRun) {
+  const result = runCoordinatesSelfCheck()
+  if (!result.ok) {
+    console.error('coordinates self-check failed:', result.errors)
+    process.exit(1)
+  }
+  console.log('coordinates self-check OK')
 }
-console.log('coordinates self-check OK')
