@@ -1,4 +1,8 @@
 import { nextTick, onMounted, onUnmounted, unref } from 'vue'
+import {
+  screenDragToCameraWorldDelta,
+  worldAxisCameraStepDelta,
+} from '../world/coordinates.js'
 
 const PAN_POINTER_BUTTONS = new Set([0, 1, 2])
 
@@ -9,11 +13,8 @@ export function useCameraPan(viewportEl, onPanCamera) {
   let mountedElement = null
 
   const dragMapByScreenDelta = (deltaSx, deltaSy) => {
-    onPanCamera(-deltaSx, -deltaSy)
-  }
-
-  const moveCameraByScreenDelta = (deltaSx, deltaSy) => {
-    onPanCamera(deltaSx, deltaSy)
+    const { deltaWx, deltaWy } = screenDragToCameraWorldDelta(deltaSx, deltaSy)
+    onPanCamera(deltaWx, deltaWy)
   }
 
   const onPointerDown = (event) => {
@@ -58,15 +59,18 @@ export function useCameraPan(viewportEl, onPanCamera) {
     if (event.target !== mountedElement && !mountedElement?.contains(event.target)) {
       return
     }
-    const step = 48
     if (event.code === 'KeyW') {
-      moveCameraByScreenDelta(0, -step)
+      const { deltaWx, deltaWy } = worldAxisCameraStepDelta('north')
+      onPanCamera(deltaWx, deltaWy)
     } else if (event.code === 'KeyS') {
-      moveCameraByScreenDelta(0, step)
+      const { deltaWx, deltaWy } = worldAxisCameraStepDelta('south')
+      onPanCamera(deltaWx, deltaWy)
     } else if (event.code === 'KeyA') {
-      moveCameraByScreenDelta(-step, 0)
+      const { deltaWx, deltaWy } = worldAxisCameraStepDelta('west')
+      onPanCamera(deltaWx, deltaWy)
     } else if (event.code === 'KeyD') {
-      moveCameraByScreenDelta(step, 0)
+      const { deltaWx, deltaWy } = worldAxisCameraStepDelta('east')
+      onPanCamera(deltaWx, deltaWy)
     } else {
       return
     }
