@@ -1,5 +1,5 @@
 <template>
-  <div ref="viewportEl" class="game-viewport">
+  <div ref="viewportEl" class="game-viewport" tabindex="0">
     <div class="game-world" :style="worldLayerStyle">
       <slot />
     </div>
@@ -8,7 +8,8 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted, provide, ref } from 'vue'
-import { createCameraAtWorldCenter } from '../camera/cameraModel.js'
+import { useStore } from 'vuex'
+import { useCameraPan } from '../camera/useCameraPan.js'
 import { WORLD_LAYER_HALF_SIZE, WORLD_LAYER_SIZE } from '../world/worldLayer.js'
 
 const worldLayerSizePx = `${WORLD_LAYER_SIZE}px`
@@ -16,9 +17,12 @@ const worldLayerSizePx = `${WORLD_LAYER_SIZE}px`
 const props = defineProps({
   camera: {
     type: Object,
-    default: () => createCameraAtWorldCenter(),
+    default: undefined,
   },
 })
+
+const store = useStore()
+const camera = computed(() => props.camera ?? store.getters['camera/camera'])
 
 const viewportEl = ref(null)
 const viewportSize = ref({ width: 0, height: 0 })
@@ -33,13 +37,18 @@ const worldLayerStyle = computed(() => {
   const halfW = width / 2
   const halfH = height / 2
   return {
-    transform: `translate(${halfW - WORLD_LAYER_HALF_SIZE - props.camera.cameraCenterWx}px, ${halfH - WORLD_LAYER_HALF_SIZE - props.camera.cameraCenterWy}px)`,
+    transform: `translate(${halfW - WORLD_LAYER_HALF_SIZE - camera.value.cameraCenterWx}px, ${halfH - WORLD_LAYER_HALF_SIZE - camera.value.cameraCenterWy}px)`,
   }
 })
 
 let resizeObserver
 
+useCameraPan(viewportEl, (deltaWx, deltaWy) => {
+  store.dispatch('camera/panCamera', { deltaWx, deltaWy })
+})
+
 onMounted(() => {
+  viewportEl.value?.focus({ preventScroll: true })
   const syncViewportSize = () => {
     if (!viewportEl.value) {
       return
@@ -66,6 +75,12 @@ onUnmounted(() => {
   height: 100%;
   overflow: hidden;
   background: #1a2e1a;
+  cursor: grab;
+  outline: none;
+
+  &:active {
+    cursor: grabbing;
+  }
 }
 
 .game-world {
