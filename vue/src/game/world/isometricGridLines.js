@@ -1,57 +1,51 @@
-import { screenToWorld, worldToScreen } from './coordinates.js'
-import { ISO_TILE_HALF_WIDTH } from './worldUnits.js'
+import { worldToProjectedPlane } from './coordinates.js'
+import { WORLD_MAP_HALF_EXTENT } from './bounds.js'
+import { WORLD_GRID_SIZE } from './worldUnits.js'
 
-const ISO_TILE_WORLD_SIZE = ISO_TILE_HALF_WIDTH * 2
-
-export function buildIsometricGridLines(camera, viewportSize) {
-  const { width, height } = viewportSize
-  if (!width || !height) {
-    return []
-  }
-  const corners = [
-    screenToWorld(0, 0, camera, viewportSize),
-    screenToWorld(width, 0, camera, viewportSize),
-    screenToWorld(0, height, camera, viewportSize),
-    screenToWorld(width, height, camera, viewportSize),
+export function buildMapOutlinePoints(camera) {
+  return [
+    worldToProjectedPlane(-WORLD_MAP_HALF_EXTENT, -WORLD_MAP_HALF_EXTENT, camera),
+    worldToProjectedPlane(WORLD_MAP_HALF_EXTENT, -WORLD_MAP_HALF_EXTENT, camera),
+    worldToProjectedPlane(WORLD_MAP_HALF_EXTENT, WORLD_MAP_HALF_EXTENT, camera),
+    worldToProjectedPlane(-WORLD_MAP_HALF_EXTENT, WORLD_MAP_HALF_EXTENT, camera),
   ]
-  const minWx = Math.min(...corners.map((point) => point.wx)) - ISO_TILE_WORLD_SIZE * 2
-  const maxWx = Math.max(...corners.map((point) => point.wx)) + ISO_TILE_WORLD_SIZE * 2
-  const minWy = Math.min(...corners.map((point) => point.wy)) - ISO_TILE_WORLD_SIZE * 2
-  const maxWy = Math.max(...corners.map((point) => point.wy)) + ISO_TILE_WORLD_SIZE * 2
-  const minSum = minWx + minWy
-  const maxSum = maxWx + maxWy
-  const minDiff = minWx - maxWy
-  const maxDiff = maxWx - minWy
+    .map((point) => `${point.px},${point.py}`)
+    .join(' ')
+}
+
+export function buildIsometricGridLines(camera) {
   const lines = []
 
   for (
-    let sum = Math.floor(minSum / ISO_TILE_WORLD_SIZE) * ISO_TILE_WORLD_SIZE;
-    sum <= maxSum;
-    sum += ISO_TILE_WORLD_SIZE
+    let worldX = -WORLD_MAP_HALF_EXTENT + WORLD_GRID_SIZE;
+    worldX < WORLD_MAP_HALF_EXTENT;
+    worldX += WORLD_GRID_SIZE
   ) {
-    const startWy = Math.max(minWy, sum - maxWx)
-    const endWy = Math.min(maxWy, sum - minWx)
-    if (startWy > endWy) {
-      continue
-    }
-    const start = worldToScreen(sum - startWy, startWy, camera, viewportSize)
-    const end = worldToScreen(sum - endWy, endWy, camera, viewportSize)
-    lines.push({ x1: start.sx, y1: start.sy, x2: end.sx, y2: end.sy })
+    const start = worldToProjectedPlane(worldX, -WORLD_MAP_HALF_EXTENT, camera)
+    const end = worldToProjectedPlane(worldX, WORLD_MAP_HALF_EXTENT, camera)
+    lines.push({
+      x1: start.px,
+      y1: start.py,
+      x2: end.px,
+      y2: end.py,
+      isAxis: worldX === 0,
+    })
   }
 
   for (
-    let diff = Math.floor(minDiff / ISO_TILE_WORLD_SIZE) * ISO_TILE_WORLD_SIZE;
-    diff <= maxDiff;
-    diff += ISO_TILE_WORLD_SIZE
+    let worldY = -WORLD_MAP_HALF_EXTENT + WORLD_GRID_SIZE;
+    worldY < WORLD_MAP_HALF_EXTENT;
+    worldY += WORLD_GRID_SIZE
   ) {
-    const startWy = Math.max(minWy, diff + minWx)
-    const endWy = Math.min(maxWy, diff + maxWx)
-    if (startWy > endWy) {
-      continue
-    }
-    const start = worldToScreen(diff + startWy, startWy, camera, viewportSize)
-    const end = worldToScreen(diff + endWy, endWy, camera, viewportSize)
-    lines.push({ x1: start.sx, y1: start.sy, x2: end.sx, y2: end.sy })
+    const start = worldToProjectedPlane(-WORLD_MAP_HALF_EXTENT, worldY, camera)
+    const end = worldToProjectedPlane(WORLD_MAP_HALF_EXTENT, worldY, camera)
+    lines.push({
+      x1: start.px,
+      y1: start.py,
+      x2: end.px,
+      y2: end.py,
+      isAxis: worldY === 0,
+    })
   }
 
   return lines
