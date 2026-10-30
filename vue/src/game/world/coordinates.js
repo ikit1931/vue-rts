@@ -1,46 +1,63 @@
-import { ISO_TILE_HALF_HEIGHT, ISO_TILE_HALF_WIDTH } from './worldUnits.js'
+import {
+  ISO_TILE_HEIGHT,
+  ISO_TILE_WIDTH,
+  WORLD_GRID_SIZE,
+} from './worldUnits.js'
 
-function relativeWorldPoint(wx, wy, camera) {
+function getZoom(camera) {
+  return camera.cameraWorldZoom ?? 1
+}
+
+function toProjectedPlane(wx, wy, camera) {
+  const x = wx - camera.cameraCenterWx
+  const y = wy - camera.cameraCenterWy
   return {
-    relWx: wx - camera.cameraCenterWx,
-    relWy: wy - camera.cameraCenterWy,
+    px: ((x - y) / WORLD_GRID_SIZE) * (ISO_TILE_WIDTH / 2),
+    py: ((x + y) / WORLD_GRID_SIZE) * (ISO_TILE_HEIGHT / 2),
   }
 }
 
 export function worldToScreen(wx, wy, camera, viewportSize) {
   const { width, height } = viewportSize
-  const halfW = width / 2
-  const halfH = height / 2
-  const { relWx, relWy } = relativeWorldPoint(wx, wy, camera)
+  const zoom = getZoom(camera)
+  const { px, py } = toProjectedPlane(wx, wy, camera)
   return {
-    sx: halfW + (relWx - relWy) * ISO_TILE_HALF_WIDTH,
-    sy: halfH + (relWx + relWy) * ISO_TILE_HALF_HEIGHT,
+    sx: width / 2 + px * zoom,
+    sy: height / 2 + py * zoom,
   }
+}
+
+export function worldToProjectedPlane(wx, wy, camera) {
+  return toProjectedPlane(wx, wy, camera)
 }
 
 export function screenToWorld(sx, sy, camera, viewportSize) {
   const { width, height } = viewportSize
-  const halfW = width / 2
-  const halfH = height / 2
-  const relA = (sx - halfW) / ISO_TILE_HALF_WIDTH
-  const relB = (sy - halfH) / ISO_TILE_HALF_HEIGHT
+  const zoom = getZoom(camera)
+  const px = (sx - width / 2) / zoom
+  const py = (sy - height / 2) / zoom
+  const relWx =
+    ((px / (ISO_TILE_WIDTH / 2) + py / (ISO_TILE_HEIGHT / 2)) * WORLD_GRID_SIZE) / 2
+  const relWy =
+    ((py / (ISO_TILE_HEIGHT / 2) - px / (ISO_TILE_WIDTH / 2)) * WORLD_GRID_SIZE) / 2
   return {
-    wx: (relA + relB) / 2 + camera.cameraCenterWx,
-    wy: (relB - relA) / 2 + camera.cameraCenterWy,
+    wx: relWx + camera.cameraCenterWx,
+    wy: relWy + camera.cameraCenterWy,
   }
 }
 
-export function screenDragToCameraWorldDelta(deltaSx, deltaSy) {
-  const hw = ISO_TILE_HALF_WIDTH
-  const hh = ISO_TILE_HALF_HEIGHT
+export function screenDragToCameraWorldDelta(deltaSx, deltaSy, camera) {
+  const zoom = getZoom(camera)
+  const px = deltaSx / zoom
+  const py = deltaSy / zoom
   return {
-    deltaWx: -(deltaSx / hw + deltaSy / hh) / 2,
-    deltaWy: (deltaSx / hw - deltaSy / hh) / 2,
+    deltaWx: -((px / (ISO_TILE_WIDTH / 2) + py / (ISO_TILE_HEIGHT / 2)) * WORLD_GRID_SIZE) / 2,
+    deltaWy: -((py / (ISO_TILE_HEIGHT / 2) - px / (ISO_TILE_WIDTH / 2)) * WORLD_GRID_SIZE) / 2,
   }
 }
 
 export function worldAxisCameraStepDelta(axis) {
-  const step = ISO_TILE_HALF_WIDTH * 2
+  const step = WORLD_GRID_SIZE
   if (axis === 'north') {
     return { deltaWx: 0, deltaWy: -step }
   }

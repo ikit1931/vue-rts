@@ -4,6 +4,10 @@ import {
   translateCameraWorldCenter,
 } from '@/game/camera/cameraModel.js'
 import {
+  getCameraWorldZoom,
+  zoomCameraAtScreenPoint,
+} from '@/game/camera/cameraZoom.js'
+import {
   screenToWorld as projectScreenToWorld,
   worldToScreen as projectWorldToScreen,
 } from '@/game/world/coordinates.js'
@@ -35,6 +39,13 @@ export default {
   actions: {
     panCamera({ commit }, payload) {
       commit('PAN_CAMERA', payload)
+    },
+    zoomAtScreen({ state, commit }, { sx, sy, viewportSize, zoomFactor }) {
+      const nextZoom = getCameraWorldZoom(state.camera) * zoomFactor
+      commit(
+        'SET_CAMERA',
+        zoomCameraAtScreenPoint(state.camera, viewportSize, sx, sy, nextZoom),
+      )
     },
   },
 }

@@ -6,9 +6,7 @@
         :key="stub.id"
         :wx="stub.wx"
         :wy="stub.wy"
-      >
-        <div class="world-stub" />
-      </GameWorldObject>
+      />
     </GameViewport>
   </div>
 </template>
@@ -17,8 +15,8 @@
 import { GameViewport, GameWorldObject } from '@/game'
 
 const worldStubs = [
-  { id: 'a', wx: 80, wy: 40 },
-  { id: 'b', wx: -120, wy: 60 },
+  { id: 'a', wx: 0, wy: 0 },
+  { id: 'b', wx: 120, wy: 80 },
 ]
 </script>
 
@@ -30,14 +28,5 @@ const worldStubs = [
   height: 100vh;
   margin: 0;
   padding: 0;
-}
-
-.world-stub {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #c9a227;
-  border: 2px solid #1a1208;
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 35%);
 }
 </style>

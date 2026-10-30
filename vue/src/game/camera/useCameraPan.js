@@ -1,19 +1,20 @@
 import { nextTick, onMounted, onUnmounted, unref } from 'vue'
-import {
-  screenDragToCameraWorldDelta,
-  worldAxisCameraStepDelta,
-} from '../world/coordinates.js'
+import { screenDragToCameraWorldDelta } from '../world/coordinates.js'
 
 const PAN_POINTER_BUTTONS = new Set([0, 1, 2])
 
-export function useCameraPan(viewportEl, onPanCamera) {
+export function useCameraPan(viewportEl, getCamera, { onPanCamera, onZoomAtScreen }) {
   let lastClientX = 0
   let lastClientY = 0
   let panning = false
   let mountedElement = null
 
   const dragMapByScreenDelta = (deltaSx, deltaSy) => {
-    const { deltaWx, deltaWy } = screenDragToCameraWorldDelta(deltaSx, deltaSy)
+    const { deltaWx, deltaWy } = screenDragToCameraWorldDelta(
+      deltaSx,
+      deltaSy,
+      getCamera(),
+    )
     onPanCamera(deltaWx, deltaWy)
   }
 
@@ -53,24 +54,29 @@ export function useCameraPan(viewportEl, onPanCamera) {
 
   const onWheel = (event) => {
     event.preventDefault()
+    if (!mountedElement || event.deltaY === 0) {
+      return
+    }
+    const rect = mountedElement.getBoundingClientRect()
+    const sx = event.clientX - rect.left
+    const sy = event.clientY - rect.top
+    const zoomFactor = event.deltaY < 0 ? 1.1 : 1 / 1.1
+    onZoomAtScreen(sx, sy, zoomFactor)
   }
 
   const onKeyDown = (event) => {
     if (event.target !== mountedElement && !mountedElement?.contains(event.target)) {
       return
     }
+    const step = 40
     if (event.code === 'KeyW') {
-      const { deltaWx, deltaWy } = worldAxisCameraStepDelta('north')
-      onPanCamera(deltaWx, deltaWy)
+      onPanCamera(0, -step)
     } else if (event.code === 'KeyS') {
-      const { deltaWx, deltaWy } = worldAxisCameraStepDelta('south')
-      onPanCamera(deltaWx, deltaWy)
+      onPanCamera(0, step)
     } else if (event.code === 'KeyA') {
-      const { deltaWx, deltaWy } = worldAxisCameraStepDelta('west')
-      onPanCamera(deltaWx, deltaWy)
+      onPanCamera(-step, 0)
     } else if (event.code === 'KeyD') {
-      const { deltaWx, deltaWy } = worldAxisCameraStepDelta('east')
-      onPanCamera(deltaWx, deltaWy)
+      onPanCamera(step, 0)
     } else {
       return
     }
