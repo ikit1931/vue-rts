@@ -70,6 +70,7 @@ onUnmounted(() => {
   background: #1a2e1a;
   cursor: grab;
   outline: none;
+  touch-action: none;
 
   &:active {
     cursor: grabbing;

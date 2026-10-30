@@ -1,14 +1,19 @@
-import { onMounted, onUnmounted, unref } from 'vue'
+import { nextTick, onMounted, onUnmounted, unref } from 'vue'
 
-const PAN_POINTER_BUTTONS = new Set([1, 2])
+const PAN_POINTER_BUTTONS = new Set([0, 1, 2])
 
-export function useCameraPan(viewportEl, onPanDelta) {
+export function useCameraPan(viewportEl, onPanCamera) {
   let lastClientX = 0
   let lastClientY = 0
   let panning = false
+  let mountedElement = null
 
-  const applyPanDelta = (deltaSx, deltaSy) => {
-    onPanDelta(-deltaSx, -deltaSy)
+  const dragMapByScreenDelta = (deltaSx, deltaSy) => {
+    onPanCamera(-deltaSx, -deltaSy)
+  }
+
+  const moveCameraByScreenDelta = (deltaSx, deltaSy) => {
+    onPanCamera(deltaSx, deltaSy)
   }
 
   const onPointerDown = (event) => {
@@ -18,7 +23,7 @@ export function useCameraPan(viewportEl, onPanDelta) {
     panning = true
     lastClientX = event.clientX
     lastClientY = event.clientY
-    unref(viewportEl)?.setPointerCapture(event.pointerId)
+    mountedElement?.setPointerCapture(event.pointerId)
     event.preventDefault()
   }
 
@@ -30,7 +35,7 @@ export function useCameraPan(viewportEl, onPanDelta) {
     const deltaSy = event.clientY - lastClientY
     lastClientX = event.clientX
     lastClientY = event.clientY
-    applyPanDelta(deltaSx, deltaSy)
+    dragMapByScreenDelta(deltaSx, deltaSy)
   }
 
   const onPointerUp = (event) => {
@@ -38,49 +43,58 @@ export function useCameraPan(viewportEl, onPanDelta) {
       return
     }
     panning = false
-    unref(viewportEl)?.releasePointerCapture(event.pointerId)
+    mountedElement?.releasePointerCapture(event.pointerId)
   }
 
   const onContextMenu = (event) => {
     event.preventDefault()
   }
 
+  const onWheel = (event) => {
+    event.preventDefault()
+  }
+
   const onKeyDown = (event) => {
+    if (event.target !== mountedElement && !mountedElement?.contains(event.target)) {
+      return
+    }
     const step = 48
     if (event.code === 'KeyW') {
-      applyPanDelta(0, -step)
+      moveCameraByScreenDelta(0, -step)
     } else if (event.code === 'KeyS') {
-      applyPanDelta(0, step)
+      moveCameraByScreenDelta(0, step)
     } else if (event.code === 'KeyA') {
-      applyPanDelta(-step, 0)
+      moveCameraByScreenDelta(-step, 0)
     } else if (event.code === 'KeyD') {
-      applyPanDelta(step, 0)
+      moveCameraByScreenDelta(step, 0)
     } else {
       return
     }
     event.preventDefault()
   }
 
-  onMounted(() => {
-    const element = unref(viewportEl)
-    if (!element) {
+  onMounted(async () => {
+    await nextTick()
+    mountedElement = unref(viewportEl)
+    if (!mountedElement) {
       return
     }
-    element.addEventListener('pointerdown', onPointerDown)
-    element.addEventListener('pointermove', onPointerMove)
-    element.addEventListener('pointerup', onPointerUp)
-    element.addEventListener('pointercancel', onPointerUp)
-    element.addEventListener('contextmenu', onContextMenu)
-    window.addEventListener('keydown', onKeyDown)
+    mountedElement.addEventListener('pointerdown', onPointerDown)
+    mountedElement.addEventListener('pointermove', onPointerMove)
+    mountedElement.addEventListener('pointerup', onPointerUp)
+    mountedElement.addEventListener('pointercancel', onPointerUp)
+    mountedElement.addEventListener('contextmenu', onContextMenu)
+    mountedElement.addEventListener('wheel', onWheel, { passive: false })
+    mountedElement.addEventListener('keydown', onKeyDown)
   })
 
   onUnmounted(() => {
-    const element = unref(viewportEl)
-    element?.removeEventListener('pointerdown', onPointerDown)
-    element?.removeEventListener('pointermove', onPointerMove)
-    element?.removeEventListener('pointerup', onPointerUp)
-    element?.removeEventListener('pointercancel', onPointerUp)
-    element?.removeEventListener('contextmenu', onContextMenu)
-    window.removeEventListener('keydown', onKeyDown)
+    mountedElement?.removeEventListener('pointerdown', onPointerDown)
+    mountedElement?.removeEventListener('pointermove', onPointerMove)
+    mountedElement?.removeEventListener('pointerup', onPointerUp)
+    mountedElement?.removeEventListener('pointercancel', onPointerUp)
+    mountedElement?.removeEventListener('contextmenu', onContextMenu)
+    mountedElement?.removeEventListener('wheel', onWheel)
+    mountedElement?.removeEventListener('keydown', onKeyDown)
   })
 }
