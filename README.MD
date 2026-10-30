@@ -26,11 +26,11 @@ docker compose up --build
 
 ## Игровое поле и координаты
 
-Поле с камерой и сеткой — **http://localhost:5173/game** (`/game`, с главной ссылка «To Game»). Кликни по полю для фокуса. **ЛКМ / СКМ / ПКМ** — тащишь карту за собой, **WASD** — сдвиг обзора (D — вправо, картинка уезжает влево). Масштаб фиксированный 1:1, зума нет.
+Поле в **изометрическом** виде (2:1, как в классических RTS) — **http://localhost:5173/game** (`/game`, с главной ссылка «To Game»). Кликни по полю для фокуса. **ЛКМ / СКМ / ПКМ** — тащишь карту, **WASD** — сдвиг обзора по осям мира. Зума нет.
 
-У точки на карте мировые координаты `wx` и `wy`; центр карты — `(0, 0)`. Окно браузера world-координаты не меняет, только проекцию на экран. Камера в Vuex (`camera`): центр viewport в мире — `cameraCenterWx`, `cameraCenterWy`.
+Мировые координаты `(wx, wy)` **не менялись**: центр карты `(0, 0)`, модель Шебекиной по-прежнему оперирует этими числами. Изменилась только **проекция на экран** (`worldToScreen` / `screenToWorld` в `vue/src/game/world/coordinates.js`). Камера в Vuex (`camera`): `cameraCenterWx`, `cameraCenterWy`.
 
-**Шебекина** — объект внутри `GameViewport`, обёртка `GameWorldObject`:
+**Шебекина** — те же `(wx, wy)` в данных; отображение через `GameWorldObject` внутри `GameViewport`:
 
 ```vue
 <GameWorldObject :wx="100" :wy="-40">
@@ -38,9 +38,7 @@ docker compose up --build
 </GameWorldObject>
 ```
 
-Компоненты и API — из `@/game`.
-
-**Кравченко** — клик в пикселях от левого верхнего угла `.game-viewport` (`offsetX`/`offsetY` или `client` минус `getBoundingClientRect`):
+**Кравченко** — клик в пикселях viewport (левый верх `.game-viewport`), дальше `screenToWorld`:
 
 ```js
 import { useGameMap } from '@/game'
@@ -49,4 +47,11 @@ const { screenToWorld } = useGameMap()
 const { wx, wy } = screenToWorld(sx, sy)
 ```
 
-`useGameMap()` вызывай внутри `GameViewport`; снаружи передай ref с `{ width, height }`: `useGameMap(viewportSizeRef)`.
+`useGameMap()` — внутри дерева `GameViewport` или с ref `{ width, height }`.
+
+## Текст для PR (Дегтярев, изометрия v2)
+
+- **Шебекина:** логика и хранение объектов в `(wx, wy)` без изменений; на сцену — `GameWorldObject` + `@/game`.
+- **Кравченко:** hit-test по `.game-viewport`, мир через `screenToWorld` / getters `camera/screenToWorld` (сигнатуры те же, учитывается изометрия).
+- **Не в scope:** выбор юнита и приказ «иди сюда» — зона Кравченко/Шебекиной после стабилизации клика.
+- **Стек:** DOM + SVG-сетка, без Canvas; новых npm-зависимостей нет. Проверка: `npm run build` в `vue/`.
