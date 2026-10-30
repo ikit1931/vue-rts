@@ -1,18 +1,40 @@
 <template>
   <div ref="viewportEl" class="game-viewport" tabindex="0">
-    <div class="game-world" :style="worldLayerStyle">
+    <svg
+      v-if="viewportSize.width && viewportSize.height"
+      class="game-world-svg"
+      :width="viewportSize.width"
+      :height="viewportSize.height"
+      :viewBox="viewBox"
+    >
+      <polygon
+        :points="mapOutlinePoints"
+        class="game-map-fill"
+      />
+      <line
+        v-for="(segment, index) in gridLines"
+        :key="`line-${index}`"
+        :x1="segment.x1"
+        :y1="segment.y1"
+        :x2="segment.x2"
+        :y2="segment.y2"
+        :class="segment.isAxis ? 'game-grid-axis' : 'game-grid-line'"
+      />
+      <circle cx="0" cy="0" r="4" class="game-origin-marker" />
       <slot />
-    </div>
+    </svg>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, onUnmounted, provide, ref } from 'vue'
 import { useStore } from 'vuex'
+import { getCameraWorldZoom } from '../camera/cameraZoom.js'
 import { useCameraPan } from '../camera/useCameraPan.js'
-import { WORLD_LAYER_HALF_SIZE, WORLD_LAYER_SIZE } from '../world/worldLayer.js'
-
-const worldLayerSizePx = `${WORLD_LAYER_SIZE}px`
+import {
+  buildIsometricGridLines,
+  buildMapOutlinePoints,
+} from '../world/isometricGridLines.js'
 
 const store = useStore()
 const camera = computed(() => store.getters['camera/camera'])
@@ -22,22 +44,32 @@ const viewportSize = ref({ width: 0, height: 0 })
 
 provide('gameViewportSize', viewportSize)
 
-const worldLayerStyle = computed(() => {
+const viewBox = computed(() => {
   const { width, height } = viewportSize.value
-  if (!width || !height) {
-    return {}
-  }
-  const halfW = width / 2
-  const halfH = height / 2
-  return {
-    transform: `translate(${halfW - WORLD_LAYER_HALF_SIZE - camera.value.cameraCenterWx}px, ${halfH - WORLD_LAYER_HALF_SIZE - camera.value.cameraCenterWy}px)`,
-  }
+  const zoom = getCameraWorldZoom(camera.value)
+  const viewWidth = width / zoom
+  const viewHeight = height / zoom
+  return `${-viewWidth / 2} ${-viewHeight / 2} ${viewWidth} ${viewHeight}`
 })
+
+const mapOutlinePoints = computed(() => buildMapOutlinePoints(camera.value))
+
+const gridLines = computed(() => buildIsometricGridLines(camera.value))
 
 let resizeObserver
 
-useCameraPan(viewportEl, (deltaWx, deltaWy) => {
-  store.dispatch('camera/panCamera', { deltaWx, deltaWy })
+useCameraPan(viewportEl, () => camera.value, {
+  onPanCamera: (deltaWx, deltaWy) => {
+    store.dispatch('camera/panCamera', { deltaWx, deltaWy })
+  },
+  onZoomAtScreen: (sx, sy, zoomFactor) => {
+    store.dispatch('camera/zoomAtScreen', {
+      sx,
+      sy,
+      zoomFactor,
+      viewportSize: viewportSize.value,
+    })
+  },
 })
 
 onMounted(() => {
@@ -67,7 +99,7 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: #1a2e1a;
+  background: #2b2b2b;
   cursor: grab;
   outline: none;
   touch-action: none;
@@ -77,18 +109,29 @@ onUnmounted(() => {
   }
 }
 
-.game-world {
-  position: absolute;
-  left: 0;
-  top: 0;
-  width: v-bind(worldLayerSizePx);
-  height: v-bind(worldLayerSizePx);
-  background-color: #3a5f3a;
-  background-image:
-    linear-gradient(rgb(255 255 255 / 8%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 8%) 1px, transparent 1px);
-  background-size: 48px 48px;
-  transform-origin: 0 0;
-  will-change: transform;
+.game-world-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.game-map-fill {
+  fill: #3a5f3a;
+  stroke: #888;
+  stroke-width: 2;
+}
+
+.game-grid-line {
+  stroke: #555;
+  stroke-width: 1;
+}
+
+.game-grid-axis {
+  stroke: #fff;
+  stroke-width: 2;
+}
+
+.game-origin-marker {
+  fill: #f0f4e7;
 }
 </style>

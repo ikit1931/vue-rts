@@ -1,6 +1,6 @@
 # vue-rts
 
-Прототип браузерной RTS на Vue: как запустить и как у нас устроены координаты на карте.
+Прототип браузерной RTS на Vue. Ниже — запуск и договорённости по карте для тех, кто к ней подключается.
 
 ## Как запустить локально
 
@@ -12,7 +12,7 @@ npm install
 npm run dev
 ```
 
-Vite покажет адрес в консоли, чаще всего **http://localhost:5173**.
+Vite напишет адрес в консоли, обычно **http://localhost:5173**.
 
 ## Docker
 
@@ -22,25 +22,24 @@ Vite покажет адрес в консоли, чаще всего **http://l
 docker compose up --build
 ```
 
-Приложение откроется на **http://localhost:9999**.
+Сервис будет на **http://localhost:9999**.
 
-## Игровое поле и координаты
+## Игра и координаты
 
-Поле с камерой и сеткой — **http://localhost:5173/game** (`/game`, с главной ссылка «To Game»). Кликни по полю для фокуса. **ЛКМ / СКМ / ПКМ** — тащишь карту за собой, **WASD** — сдвиг обзора (D — вправо, картинка уезжает влево). Масштаб фиксированный 1:1, зума нет.
+Поле смотри на **http://localhost:5173/game** — изометрия 2:1 (сетка по диагонали, как в [changelab1](https://github.com/Anastasia2e/vue-rts/tree/changelab1)). Кликни по полю для фокуса: **ЛКМ / СКМ / ПКМ** тащат карту, **WASD** сдвигают обзор, **колёсико** — зум.
 
-У точки на карте мировые координаты `wx` и `wy`; центр карты — `(0, 0)`. Окно браузера world-координаты не меняет, только проекцию на экран. Камера в Vuex (`camera`): центр viewport в мире — `cameraCenterWx`, `cameraCenterWy`.
 
-**Шебекина** — объект внутри `GameViewport`, обёртка `GameWorldObject`:
+*Шебекина* ставит юнита так:
 
 ```vue
 <GameWorldObject :wx="100" :wy="-40">
-  <!-- разметка юнита -->
+  <!-- разметка -->
 </GameWorldObject>
 ```
 
-Компоненты и API — из `@/game`.
+Компоненты бери из `@/game`, внутри `GameViewport`.
 
-**Кравченко** — клик в пикселях от левого верхнего угла `.game-viewport` (`offsetX`/`offsetY` или `client` минус `getBoundingClientRect`):
+*Кравченко* переводит клик в мир: пиксели от левого верхнего угла `.game-viewport`, затем `screenToWorld` из `useGameMap()` (внутри `GameViewport` или со своим ref размера viewport).
 
 ```js
 import { useGameMap } from '@/game'
@@ -49,4 +48,4 @@ const { screenToWorld } = useGameMap()
 const { wx, wy } = screenToWorld(sx, sy)
 ```
 
-`useGameMap()` вызывай внутри `GameViewport`; снаружи передай ref с `{ width, height }`: `useGameMap(viewportSizeRef)`.
+Сборка: `npm run build` в `vue/`. Canvas и новых npm-пакетов нет.

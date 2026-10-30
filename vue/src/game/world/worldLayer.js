@@ -1,3 +1,0 @@
-export const WORLD_LAYER_HALF_SIZE = 5000
-
-export const WORLD_LAYER_SIZE = WORLD_LAYER_HALF_SIZE * 2

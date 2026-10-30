@@ -1,3 +1,7 @@
-export const WORLD_UNIT_EQUALS_ONE_CSS_PIXEL = true
+export const WORLD_USES_ISOMETRIC_PROJECTION_2_TO_1 = true
 
-export const WORLD_UNITS_PER_CSS_PIXEL = 1
+export const WORLD_GRID_SIZE = 40
+
+export const ISO_TILE_WIDTH = 64
+
+export const ISO_TILE_HEIGHT = 32

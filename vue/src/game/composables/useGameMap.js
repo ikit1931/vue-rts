@@ -11,7 +11,7 @@ export function useGameMap(viewportSizeSource) {
     if (explicit?.width && explicit?.height) {
       return explicit
     }
-    const injected = unref(injectedViewportSize)
+    const injected = injectedViewportSize?.value ?? unref(injectedViewportSize)
     return injected?.width && injected?.height ? injected : { width: 0, height: 0 }
   })
 

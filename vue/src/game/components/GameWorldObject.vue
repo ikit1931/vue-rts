@@ -1,12 +1,19 @@
 <template>
-  <div class="game-world-object" :style="placementStyle">
-    <slot />
-  </div>
+  <g
+    class="game-world-object"
+    :transform="`translate(${position.px} ${position.py})`"
+  >
+    <circle
+      r="8"
+      class="game-world-object__marker"
+    />
+  </g>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { WORLD_LAYER_HALF_SIZE } from '../world/worldLayer.js'
+import { useStore } from 'vuex'
+import { worldToProjectedPlane } from '../world/coordinates.js'
 
 const props = defineProps({
   wx: {
@@ -19,15 +26,18 @@ const props = defineProps({
   },
 })
 
-const placementStyle = computed(() => ({
-  left: `${WORLD_LAYER_HALF_SIZE + props.wx}px`,
-  top: `${WORLD_LAYER_HALF_SIZE + props.wy}px`,
-}))
+const store = useStore()
+const camera = computed(() => store.getters['camera/camera'])
+
+const position = computed(() =>
+  worldToProjectedPlane(props.wx, props.wy, camera.value),
+)
 </script>
 
 <style scoped lang="scss">
-.game-world-object {
-  position: absolute;
-  transform: translate(-50%, -50%);
+.game-world-object__marker {
+  fill: #c9a227;
+  stroke: #1a1208;
+  stroke-width: 2;
 }
 </style>
