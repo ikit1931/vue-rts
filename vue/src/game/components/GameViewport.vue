@@ -14,15 +14,8 @@ import { WORLD_LAYER_HALF_SIZE, WORLD_LAYER_SIZE } from '../world/worldLayer.js'
 
 const worldLayerSizePx = `${WORLD_LAYER_SIZE}px`
 
-const props = defineProps({
-  camera: {
-    type: Object,
-    default: undefined,
-  },
-})
-
 const store = useStore()
-const camera = computed(() => props.camera ?? store.getters['camera/camera'])
+const camera = computed(() => store.getters['camera/camera'])
 
 const viewportEl = ref(null)
 const viewportSize = ref({ width: 0, height: 0 })

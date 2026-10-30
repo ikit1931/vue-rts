@@ -14,8 +14,7 @@
 </template>
 
 <script setup>
-import GameViewport from '@/game/components/GameViewport.vue'
-import GameWorldObject from '@/game/components/GameWorldObject.vue'
+import { GameViewport, GameWorldObject } from '@/game'
 
 const worldStubs = [
   { id: 'a', wx: 80, wy: 40 },

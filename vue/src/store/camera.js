@@ -3,6 +3,10 @@ import {
   createCameraAtWorldCenter,
   translateCameraWorldCenter,
 } from '@/game/camera/cameraModel.js'
+import {
+  screenToWorld as projectScreenToWorld,
+  worldToScreen as projectWorldToScreen,
+} from '@/game/world/coordinates.js'
 
 export default {
   namespaced: true,
@@ -13,6 +17,10 @@ export default {
   },
   getters: {
     camera: (state) => state.camera,
+    worldToScreen: (state) => (wx, wy, viewportSize) =>
+      projectWorldToScreen(wx, wy, state.camera, viewportSize),
+    screenToWorld: (state) => (sx, sy, viewportSize) =>
+      projectScreenToWorld(sx, sy, state.camera, viewportSize),
   },
   mutations: {
     SET_CAMERA(state, camera) {
