@@ -1,8 +1,21 @@
 <template>
   <div ref="viewportEl" class="game-viewport" tabindex="0">
-    <div class="game-world" :style="worldLayerStyle">
-      <slot />
-    </div>
+    <svg
+      v-if="viewportSize.width && viewportSize.height"
+      class="game-iso-grid"
+      :width="viewportSize.width"
+      :height="viewportSize.height"
+    >
+      <line
+        v-for="(segment, index) in gridLines"
+        :key="index"
+        :x1="segment.x1"
+        :y1="segment.y1"
+        :x2="segment.x2"
+        :y2="segment.y2"
+      />
+    </svg>
+    <slot />
   </div>
 </template>
 
@@ -10,9 +23,7 @@
 import { computed, onMounted, onUnmounted, provide, ref } from 'vue'
 import { useStore } from 'vuex'
 import { useCameraPan } from '../camera/useCameraPan.js'
-import { WORLD_LAYER_HALF_SIZE, WORLD_LAYER_SIZE } from '../world/worldLayer.js'
-
-const worldLayerSizePx = `${WORLD_LAYER_SIZE}px`
+import { buildIsometricGridLines } from '../world/isometricGridLines.js'
 
 const store = useStore()
 const camera = computed(() => store.getters['camera/camera'])
@@ -22,17 +33,9 @@ const viewportSize = ref({ width: 0, height: 0 })
 
 provide('gameViewportSize', viewportSize)
 
-const worldLayerStyle = computed(() => {
-  const { width, height } = viewportSize.value
-  if (!width || !height) {
-    return {}
-  }
-  const halfW = width / 2
-  const halfH = height / 2
-  return {
-    transform: `translate(${halfW - WORLD_LAYER_HALF_SIZE - camera.value.cameraCenterWx}px, ${halfH - WORLD_LAYER_HALF_SIZE - camera.value.cameraCenterWy}px)`,
-  }
-})
+const gridLines = computed(() =>
+  buildIsometricGridLines(camera.value, viewportSize.value),
+)
 
 let resizeObserver
 
@@ -77,18 +80,14 @@ onUnmounted(() => {
   }
 }
 
-.game-world {
+.game-iso-grid {
   position: absolute;
-  left: 0;
-  top: 0;
-  width: v-bind(worldLayerSizePx);
-  height: v-bind(worldLayerSizePx);
-  background-color: #3a5f3a;
-  background-image:
-    linear-gradient(rgb(255 255 255 / 8%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 8%) 1px, transparent 1px);
-  background-size: 48px 48px;
-  transform-origin: 0 0;
-  will-change: transform;
+  inset: 0;
+  pointer-events: none;
+
+  line {
+    stroke: rgb(255 255 255 / 14%);
+    stroke-width: 1;
+  }
 }
 </style>

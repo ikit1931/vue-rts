@@ -6,7 +6,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { WORLD_LAYER_HALF_SIZE } from '../world/worldLayer.js'
+import { useGameMap } from '../composables/useGameMap.js'
 
 const props = defineProps({
   wx: {
@@ -19,15 +19,20 @@ const props = defineProps({
   },
 })
 
-const placementStyle = computed(() => ({
-  left: `${WORLD_LAYER_HALF_SIZE + props.wx}px`,
-  top: `${WORLD_LAYER_HALF_SIZE + props.wy}px`,
-}))
+const { worldToScreen } = useGameMap()
+
+const placementStyle = computed(() => {
+  const { sx, sy } = worldToScreen(props.wx, props.wy)
+  return {
+    left: `${sx}px`,
+    top: `${sy}px`,
+  }
+})
 </script>
 
 <style scoped lang="scss">
 .game-world-object {
   position: absolute;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -100%);
 }
 </style>
