@@ -10,9 +10,7 @@
     "dev": "vite",
     "devhost": "vite --host",
     "build": "vite build",
-    "preview": "vite preview",
-    "check:coordinates": "node src/game/world/coordinatesSelfCheck.js",
-    "check:acceptance": "node src/game/acceptanceSelfCheck.js"
+    "preview": "vite preview"
   },
   "dependencies": {
     "vue": "^3.5.18",
