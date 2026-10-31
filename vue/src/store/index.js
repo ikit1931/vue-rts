@@ -42,3 +42,5 @@ export default createStore({
     camera,
   }
 })
+
+export { default as GameDestinationMarker } from './components/GameDestinationMarker.vue'
