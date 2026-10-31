@@ -4,8 +4,6 @@
       :transform="`translate(${position.px} ${position.py})`"
   >
     <ellipse class="game-destination__ring" rx="14" ry="7" />
-    <line class="game-destination__cross" x1="-5" y1="-2.5" x2="5" y2="2.5" />
-    <line class="game-destination__cross" x1="-5" y1="2.5" x2="5" y2="-2.5" />
   </g>
 </template>
 
@@ -39,11 +37,5 @@ const position = computed(() =>
   stroke: #fff;
   stroke-width: 2;
   stroke-dasharray: 5 3;
-}
-
-.game-destination__cross {
-  stroke: #fff;
-  stroke-width: 2;
-  stroke-linecap: round;
 }
 </style>
