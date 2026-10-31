@@ -8,3 +8,11 @@ export const MAP_LOGICAL_BOUNDS = Object.freeze({
   minWy: -WORLD_MAP_HALF_EXTENT,
   maxWy: WORLD_MAP_HALF_EXTENT,
 })
+
+export function isWorldPointInsideMap(wx, wy) {
+  if (MAP_FIELD_IS_UNBOUNDED || MAP_LOGICAL_BOUNDS === null) {
+    return true
+  }
+  const { minWx, maxWx, minWy, maxWy } = MAP_LOGICAL_BOUNDS
+  return wx >= minWx && wx <= maxWx && wy >= minWy && wy <= maxWy
+}
