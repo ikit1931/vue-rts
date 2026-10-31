@@ -2,11 +2,17 @@ import { nextTick, onMounted, onUnmounted, unref } from 'vue'
 import { screenDragToCameraWorldDelta } from '../world/coordinates.js'
 
 const PAN_POINTER_BUTTONS = new Set([0, 1, 2])
+const MIDDLE_BUTTON = 1
+const CLICK_DRAG_THRESHOLD_PX = 5
 
-export function useCameraPan(viewportEl, getCamera, { onPanCamera, onZoomAtScreen }) {
+export function useCameraPan(viewportEl, getCamera, { onPanCamera, onZoomAtScreen, onClick }) {
   let lastClientX = 0
   let lastClientY = 0
   let panning = false
+  let dragging = false
+  let pressedButton = 0
+  let startClientX = 0
+  let startClientY = 0
   let mountedElement = null
 
   const dragMapByScreenDelta = (deltaSx, deltaSy) => {
@@ -23,8 +29,10 @@ export function useCameraPan(viewportEl, getCamera, { onPanCamera, onZoomAtScree
       return
     }
     panning = true
-    lastClientX = event.clientX
-    lastClientY = event.clientY
+    pressedButton = event.button
+    dragging = event.button === MIDDLE_BUTTON
+    startClientX = lastClientX = event.clientX
+    startClientY = lastClientY = event.clientY
     mountedElement?.setPointerCapture(event.pointerId)
     event.preventDefault()
   }
@@ -32,6 +40,15 @@ export function useCameraPan(viewportEl, getCamera, { onPanCamera, onZoomAtScree
   const onPointerMove = (event) => {
     if (!panning) {
       return
+    }
+    if (!dragging) {
+      const moved = Math.hypot(event.clientX - startClientX, event.clientY - startClientY)
+      if (moved < CLICK_DRAG_THRESHOLD_PX) {
+        return
+      }
+      dragging = true
+      lastClientX = event.clientX
+      lastClientY = event.clientY
     }
     const deltaSx = event.clientX - lastClientX
     const deltaSy = event.clientY - lastClientY
@@ -46,6 +63,10 @@ export function useCameraPan(viewportEl, getCamera, { onPanCamera, onZoomAtScree
     }
     panning = false
     mountedElement?.releasePointerCapture(event.pointerId)
+    if (!dragging && event.type === 'pointerup') {
+      const rect = mountedElement.getBoundingClientRect()
+      onClick?.(event.clientX - rect.left, event.clientY - rect.top, pressedButton)
+    }
   }
 
   const onContextMenu = (event) => {

@@ -30,12 +30,14 @@
 import { computed, onMounted, onUnmounted, provide, ref } from 'vue'
 import { useStore } from 'vuex'
 import { getCameraWorldZoom } from '../camera/cameraZoom.js'
+import { screenToWorld } from "@/game/world/coordinates.js";
 import { useCameraPan } from '../camera/useCameraPan.js'
 import {
   buildIsometricGridLines,
   buildMapOutlinePoints,
 } from '../world/isometricGridLines.js'
 
+const emit = defineEmits(['world-click'])
 const store = useStore()
 const camera = computed(() => store.getters['camera/camera'])
 
@@ -59,6 +61,10 @@ const gridLines = computed(() => buildIsometricGridLines(camera.value))
 let resizeObserver
 
 useCameraPan(viewportEl, () => camera.value, {
+  onClick: (sx, sy, button) => {
+    const { wx, wy} = screenToWorld(sx, sy, camera.value, viewportSize.value)
+    emit('world-click', { button, wx, wy })
+  },
   onPanCamera: (deltaWx, deltaWy) => {
     store.dispatch('camera/panCamera', { deltaWx, deltaWy })
   },
