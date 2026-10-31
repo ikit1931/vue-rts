@@ -14,6 +14,7 @@
 import { computed } from 'vue'
 import { useStore } from 'vuex'
 import { worldToProjectedPlane } from '../world/coordinates.js'
+import {ISO_TILE_HEIGHT, ISO_TILE_WIDTH, WORLD_GRID_SIZE} from "@/game/world/worldUnits.js";
 
 const props = defineProps({
   wx: {
@@ -32,6 +33,10 @@ const camera = computed(() => store.getters['camera/camera'])
 const position = computed(() =>
   worldToProjectedPlane(props.wx, props.wy, camera.value),
 )
+const ring = computed(() => {
+  const k = (props.radius * Math.SQRT2) / WORLD_GRID_SIZE
+  return {rx: k * (ISO_TILE_WIDTH / 2), ry: k * (ISO_TILE_HEIGHT / 2)}
+})
 </script>
 
 <style scoped lang="scss">
