@@ -20,7 +20,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted } from 'vue'
 import { useStore } from 'vuex'
 import { GameDestinationMarker, GameViewport, GameWorldObject } from '@/game'
 
@@ -31,6 +31,28 @@ const store = useStore()
 const units = computed(() => store.getters['units/units'])
 const selectedId = computed(() => store.getters['units/selectedId'])
 const unitsWithDestination = computed(() => units.value.filter((unit) => unit.destination))
+
+let animationFrameId = null
+let previousFrameTime = null
+
+function advanceUnits(frameTime) {
+  if (previousFrameTime !== null) {
+    // Bound large pauses (for example, switching back to the tab) to avoid teleporting.
+    const elapsedSeconds = Math.min((frameTime - previousFrameTime) / 1000, 0.1)
+    store.dispatch('units/advance', elapsedSeconds)
+  }
+  previousFrameTime = frameTime
+  animationFrameId = requestAnimationFrame(advanceUnits)
+}
+
+onMounted(() => {
+  animationFrameId = requestAnimationFrame(advanceUnits)
+})
+
+onUnmounted(() => {
+  if (animationFrameId !== null) cancelAnimationFrame(animationFrameId)
+  previousFrameTime = null
+})
 
 function onWorldClick({ button, wx, wy }) {
   if (button === LEFT_BUTTON) {
