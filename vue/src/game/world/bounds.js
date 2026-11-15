@@ -22,9 +22,20 @@ export function isWorldPointInsideMap(wx, wy) {
 export function isBuildingInsideMap(wx, wy, sizeN) {
   const half = buildingHalfExtent(sizeN)
   return (
-    isWorldPointInsideMap(wx - half, wy - half) &&
-    isWorldPointInsideMap(wx + half, wy - half) &&
-    isWorldPointInsideMap(wx + half, wy + half) &&
-    isWorldPointInsideMap(wx - half, wy + half)
+      isWorldPointInsideMap(wx - half, wy - half) &&
+      isWorldPointInsideMap(wx + half, wy - half) &&
+      isWorldPointInsideMap(wx + half, wy + half) &&
+      isWorldPointInsideMap(wx - half, wy + half)
   )
+}
+
+export function clampWorldPointToMap(wx, wy) {
+  if (MAP_FIELD_IS_UNBOUNDED || MAP_LOGICAL_BOUNDS === null) {
+    return { wx, wy }
+  }
+  const { minWx, maxWx, minWy, maxWy } = MAP_LOGICAL_BOUNDS
+  return {
+    wx: Math.min(maxWx, Math.max(minWx, wx)),
+    wy: Math.min(maxWy, Math.max(minWy, wy)),
+  }
 }

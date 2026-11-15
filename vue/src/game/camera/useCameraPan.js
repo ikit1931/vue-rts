@@ -1,15 +1,22 @@
-import { nextTick, onMounted, onUnmounted, unref } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, unref } from 'vue'
 import { screenDragToCameraWorldDelta } from '../world/coordinates.js'
 
 const PAN_POINTER_BUTTONS = new Set([0, 1, 2])
+const LEFT_BUTTON = 0
 const MIDDLE_BUTTON = 1
 const CLICK_DRAG_THRESHOLD_PX = 5
 
-export function useCameraPan(viewportEl, getCamera, { onPanCamera, onZoomAtScreen, onClick }) {
+export function useCameraPan(
+    viewportEl,
+    getCamera,
+    { onPanCamera, onZoomAtScreen, onClick, onSelectionUpdate, onSelectionEnd, onSelectionCancel },
+) {
+  const isPanning = ref(false)
   let lastClientX = 0
   let lastClientY = 0
   let panning = false
   let dragging = false
+  let selecting = false
   let pressedButton = 0
   let startClientX = 0
   let startClientY = 0
@@ -17,11 +24,25 @@ export function useCameraPan(viewportEl, getCamera, { onPanCamera, onZoomAtScree
 
   const dragMapByScreenDelta = (deltaSx, deltaSy) => {
     const { deltaWx, deltaWy } = screenDragToCameraWorldDelta(
-      deltaSx,
-      deltaSy,
-      getCamera(),
+        deltaSx,
+        deltaSy,
+        getCamera(),
     )
     onPanCamera(deltaWx, deltaWy)
+  }
+
+  const toViewportPoint = (event) => {
+    const rect = mountedElement.getBoundingClientRect()
+    return { x: event.clientX - rect.left, y: event.clientY - rect.top }
+  }
+
+  const selectionRect = (event) => {
+    const start = {
+      x: startClientX - mountedElement.getBoundingClientRect().left,
+      y: startClientY - mountedElement.getBoundingClientRect().top,
+    }
+    const end = toViewportPoint(event)
+    return { x1: start.x, y1: start.y, x2: end.x, y2: end.y }
   }
 
   const onPointerDown = (event) => {
@@ -30,7 +51,9 @@ export function useCameraPan(viewportEl, getCamera, { onPanCamera, onZoomAtScree
     }
     panning = true
     pressedButton = event.button
+    selecting = false
     dragging = event.button === MIDDLE_BUTTON
+    isPanning.value = dragging
     startClientX = lastClientX = event.clientX
     startClientY = lastClientY = event.clientY
     mountedElement?.setPointerCapture(event.pointerId)
@@ -47,8 +70,17 @@ export function useCameraPan(viewportEl, getCamera, { onPanCamera, onZoomAtScree
         return
       }
       dragging = true
-      lastClientX = event.clientX
-      lastClientY = event.clientY
+      if (pressedButton === LEFT_BUTTON) {
+        selecting = true
+      } else {
+        isPanning.value = true
+        lastClientX = event.clientX
+        lastClientY = event.clientY
+      }
+    }
+    if (selecting) {
+      onSelectionUpdate?.(selectionRect(event))
+      return
     }
     const deltaSx = event.clientX - lastClientX
     const deltaSy = event.clientY - lastClientY
@@ -62,10 +94,20 @@ export function useCameraPan(viewportEl, getCamera, { onPanCamera, onZoomAtScree
       return
     }
     panning = false
+    isPanning.value = false
     mountedElement?.releasePointerCapture(event.pointerId)
+    if (selecting) {
+      selecting = false
+      if (event.type === 'pointerup') {
+        onSelectionEnd?.(selectionRect(event), event.shiftKey)
+      } else {
+        onSelectionCancel?.()
+      }
+      return
+    }
     if (!dragging && event.type === 'pointerup') {
-      const rect = mountedElement.getBoundingClientRect()
-      onClick?.(event.clientX - rect.left, event.clientY - rect.top, pressedButton)
+      const point = toViewportPoint(event)
+      onClick?.(point.x, point.y, pressedButton, event.shiftKey)
     }
   }
 
@@ -128,4 +170,6 @@ export function useCameraPan(viewportEl, getCamera, { onPanCamera, onZoomAtScree
     mountedElement?.removeEventListener('wheel', onWheel)
     mountedElement?.removeEventListener('keydown', onKeyDown)
   })
+
+  return { isPanning }
 }

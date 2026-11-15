@@ -1,6 +1,6 @@
 <template>
   <div class="game-page">
-    <GameViewport @world-click="onWorldClick">
+    <GameViewport @world-click="onWorldClick" @world-area="onWorldArea">
       <GameDestinationMarker
           v-for="unit in unitsWithDestination"
           :key="`destination-${unit.id}`"
@@ -16,7 +16,10 @@
           :type="unit.type"
           :size-n="unit.sizeN || 1"
           :group="unit.group || 1"
-          :selected="unit.id === selectedId"
+          :selected="selectedIdSet.has(unit.id)"
+          :targeted="targetedIds.has(unit.id)"
+          :hp="unit.stats?.hp ?? null"
+          :max-hp="unit.maxHp ?? null"
       />
     </GameViewport>
     <GameNavigationPanel />
@@ -36,6 +39,7 @@ import {
   GameViewport,
   GameWorldObject,
 } from '@/game'
+import { pointInConvexPolygon } from '@/game/world/selection.js'
 import { buildingHalfExtent } from '@/game/world/worldUnits.js'
 
 const LEFT_BUTTON = 0
@@ -43,10 +47,18 @@ const RIGHT_BUTTON = 2
 
 const store = useStore()
 const units = computed(() => store.getters['units/units'])
-const selectedId = computed(() => store.getters['units/selectedId'])
+const selectedIdSet = computed(() => new Set(store.getters['units/selectedIds']))
+const targetedIds = computed(
+    () =>
+        new Set(
+            store.getters['units/selectedUnits']
+                .map((unit) => unit.attackTargetId)
+                .filter((id) => id != null),
+        ),
+)
 const buildMode = computed(() => store.getters['units/buildMode'])
 const unitsWithDestination = computed(() =>
-  units.value.filter((unit) => unit.type === 'unit' && unit.destination),
+    units.value.filter((unit) => unit.type === 'unit' && unit.destination),
 )
 
 let animationFrameId = null
@@ -54,7 +66,6 @@ let previousFrameTime = null
 
 function advanceUnits(frameTime) {
   if (previousFrameTime !== null) {
-    // Bound large pauses (for example, switching back to the tab) to avoid teleporting.
     const elapsedSeconds = Math.min((frameTime - previousFrameTime) / 1000, 0.1)
     store.dispatch('units/advance', elapsedSeconds)
   }
@@ -95,13 +106,17 @@ function findHitObject(wx, wy) {
   return hit
 }
 
-function onWorldClick({ button, wx, wy }) {
+function onWorldClick({ button, wx, wy, shiftKey }) {
   if (button === LEFT_BUTTON) {
     if (buildMode.value.active) {
       store.dispatch('units/placeBuilding', { wx, wy })
       return
     }
     const hit = findHitObject(wx, wy)
+    if (shiftKey) {
+      if (hit) store.dispatch('units/toggleSelect', hit.id)
+      return
+    }
     store.dispatch('units/select', hit ? hit.id : null)
   } else if (button === RIGHT_BUTTON) {
     if (buildMode.value.active) {
@@ -113,8 +128,17 @@ function onWorldClick({ button, wx, wy }) {
       })
       return
     }
-    store.dispatch('units/moveSelectedTo', { wx, wy })
+    const hit = findHitObject(wx, wy)
+    store.dispatch('units/commandSelected', { wx, wy, targetId: hit ? hit.id : null })
   }
+}
+
+function onWorldArea({ corners, shiftKey }) {
+  if (buildMode.value.active) return
+  const ids = units.value
+      .filter((object) => object.type === 'unit' && pointInConvexPolygon(object.wx, object.wy, corners))
+      .map((object) => object.id)
+  store.dispatch('units/selectMany', { ids, additive: shiftKey })
 }
 </script>
 

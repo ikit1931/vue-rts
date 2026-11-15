@@ -2,6 +2,8 @@ import { BUILDING_TYPES } from '@/game/config/buildingTypes.js'
 import { AVAILABLE_GROUPS, DEFAULT_GROUP } from '@/game/config/groups.js'
 import { getUnitTypeConfig } from '@/game/config/unitTypes.js'
 import { isBuildingInsideMap, isWorldPointInsideMap } from '@/game/world/bounds.js'
+import { advanceCombat, canAttackTarget } from '@/game/world/combat.js'
+import { formationSlots } from '@/game/world/formation.js'
 import { createBuilding, createGameObject, createUnit } from '@/game/world/gameObject.js'
 import { advanceGameObject } from '@/game/world/movement.js'
 import { buildingHalfExtent, buildingsOverlap, snapToWorldGrid } from '@/game/world/worldUnits.js'
@@ -10,7 +12,7 @@ export default {
     namespaced: true,
     state() {
         return {
-            selectedId: null,
+            selectedIds: [],
             activeGroup: DEFAULT_GROUP,
             buildMode: {
                 active: false,
@@ -35,19 +37,22 @@ export default {
     },
     getters: {
         units: (state) => state.list,
-        selectedId: (state) => state.selectedId,
+        selectedIds: (state) => state.selectedIds,
         activeGroup: (state) => state.activeGroup,
         availableGroups: () => AVAILABLE_GROUPS,
         buildMode: (state) => state.buildMode,
-        selectedObject: (state) => state.list.find((item) => item.id === state.selectedId) ?? null,
+        selectedObjects: (state) => state.list.filter((item) => state.selectedIds.includes(item.id)),
+        selectedUnits: (state, getters) => getters.selectedObjects.filter((item) => item.type === 'unit'),
+        selectedObject: (state, getters) =>
+            getters.selectedObjects.length === 1 ? getters.selectedObjects[0] : null,
         canSpawnFromSelected: (state, getters) => {
             const selected = getters.selectedObject
             return Boolean(selected?.type === 'building' && selected.spawnUnitType)
         },
     },
     mutations: {
-        SELECT(state, id) {
-            state.selectedId = id
+        SET_SELECTION(state, ids) {
+            state.selectedIds = ids
         },
         SET_ACTIVE_GROUP(state, group) {
             state.activeGroup = AVAILABLE_GROUPS.includes(group) ? group : DEFAULT_GROUP
@@ -69,22 +74,60 @@ export default {
             const unit = state.list.find((item) => item.id === id)
             if (unit) {
                 unit.destination = { wx, wy }
+                unit.attackTargetId = null
+            }
+        },
+        SET_ATTACK_TARGET(state, { id, targetId }) {
+            const unit = state.list.find((item) => item.id === id)
+            if (unit) {
+                unit.attackTargetId = targetId
+                unit.destination = null
             }
         },
         ADVANCE(state, elapsedSeconds) {
             for (const item of state.list) advanceGameObject(item, elapsedSeconds)
+            const destroyedIds = advanceCombat(state.list, elapsedSeconds)
+            if (destroyedIds.length > 0) {
+                state.list = state.list.filter((item) => !destroyedIds.includes(item.id))
+                state.selectedIds = state.selectedIds.filter((id) => !destroyedIds.includes(id))
+            }
         },
         ADD_OBJECT(state, object) {
             if (!state.list.some((item) => item.id === object.id)) state.list.push(object)
         },
         REMOVE_OBJECT(state, id) {
             state.list = state.list.filter((item) => item.id !== id)
-            if (state.selectedId === id) state.selectedId = null
+            state.selectedIds = state.selectedIds.filter((selectedId) => selectedId !== id)
         },
     },
     actions: {
         select({ commit }, id) {
-            commit('SELECT', id)
+            commit('SET_SELECTION', id ? [id] : [])
+        },
+        toggleSelect({ state, commit }, id) {
+            const object = state.list.find((item) => item.id === id)
+            if (!object) return
+            if (object.type !== 'unit') {
+                commit('SET_SELECTION', [id])
+                return
+            }
+            const selectedUnitIds = state.list
+                .filter((item) => item.type === 'unit' && state.selectedIds.includes(item.id))
+                .map((item) => item.id)
+            commit(
+                'SET_SELECTION',
+                selectedUnitIds.includes(id)
+                    ? selectedUnitIds.filter((selectedId) => selectedId !== id)
+                    : [...selectedUnitIds, id],
+            )
+        },
+        selectMany({ state, commit }, { ids, additive = false }) {
+            const kept = additive
+                ? state.list
+                    .filter((item) => item.type === 'unit' && state.selectedIds.includes(item.id))
+                    .map((item) => item.id)
+                : []
+            commit('SET_SELECTION', [...new Set([...kept, ...ids])])
         },
         setActiveGroup({ commit }, group) {
             commit('SET_ACTIVE_GROUP', group)
@@ -102,10 +145,22 @@ export default {
                 spawnUnitType: option.spawnUnitType ?? null,
             })
         },
-        moveSelectedTo({ state, commit }, { wx, wy }) {
-            const selected = state.list.find((item) => item.id === state.selectedId)
-            if (selected?.type === 'unit' && isWorldPointInsideMap(wx, wy)) {
-                commit('SET_DESTINATION', { id: state.selectedId, wx, wy })
+        commandSelected({ state, getters, commit }, { wx, wy, targetId = null }) {
+            const units = getters.selectedUnits
+            if (units.length === 0) return
+
+            const target = targetId ? state.list.find((item) => item.id === targetId) : null
+            const attackers = target ? units.filter((unit) => canAttackTarget(unit, target)) : []
+            for (const unit of attackers) {
+                commit('SET_ATTACK_TARGET', { id: unit.id, targetId: target.id })
+            }
+
+            const movers = units.filter((unit) => !attackers.includes(unit))
+            if (movers.length > 0 && isWorldPointInsideMap(wx, wy)) {
+                const slots = formationSlots(wx, wy, movers.length)
+                movers.forEach((unit, index) => {
+                    commit('SET_DESTINATION', { id: unit.id, ...slots[index] })
+                })
             }
         },
         advance({ commit }, elapsedSeconds) {
@@ -177,10 +232,9 @@ export default {
             return unit
         },
         destroySelected({ getters, commit }) {
-            const selected = getters.selectedObject
-            if (selected?.type !== 'unit') return false
-            commit('REMOVE_OBJECT', selected.id)
-            return true
+            const units = getters.selectedUnits
+            for (const unit of units) commit('REMOVE_OBJECT', unit.id)
+            return units.length > 0
         },
     },
 }

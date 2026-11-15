@@ -11,16 +11,16 @@
 
     <template v-if="isUnitSelected">
       <p
-        class="game-panel__title"
-        :class="{ 'game-panel__title--spaced': canSpawn }"
+          class="game-panel__title"
+          :class="{ 'game-panel__title--spaced': canSpawn }"
       >
         Персонаж
       </p>
       <div class="game-panel__row">
         <button
-          type="button"
-          class="game-panel__btn game-panel__btn--danger"
-          @click="onDestroyClick"
+            type="button"
+            class="game-panel__btn game-panel__btn--danger"
+            @click="onDestroyClick"
         >
           Самоуничтожение
         </button>
@@ -37,7 +37,8 @@ import { getUnitTypeConfig } from '@/game/config/unitTypes.js'
 const store = useStore()
 const selectedObject = computed(() => store.getters['units/selectedObject'])
 const canSpawn = computed(() => store.getters['units/canSpawnFromSelected'])
-const isUnitSelected = computed(() => selectedObject.value?.type === 'unit')
+const selectedUnits = computed(() => store.getters['units/selectedUnits'])
+const isUnitSelected = computed(() => selectedUnits.value.length > 0)
 const hasActions = computed(() => canSpawn.value || isUnitSelected.value)
 const spawnLabel = computed(() => {
   const unitType = selectedObject.value?.spawnUnitType
