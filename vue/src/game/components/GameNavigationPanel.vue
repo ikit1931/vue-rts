@@ -25,7 +25,7 @@
         :class="{ 'game-nav-panel__btn--active': isBuildOptionActive(option) }"
         @click="onBuildOptionClick(option)"
       >
-        {{ option.sizeN }}x{{ option.sizeN }}
+        {{ option.label }} {{ option.sizeN }}x{{ option.sizeN }}
       </button>
     </div>
 
