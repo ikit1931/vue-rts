@@ -14,7 +14,8 @@ export function snapToWorldGrid(wx, wy) {
 }
 
 export function buildingHalfExtent(sizeN) {
-  return (Math.max(1, sizeN) * WORLD_GRID_SIZE) / 2
+  const n = Number.isFinite(sizeN) ? sizeN : 1
+  return (Math.max(1, n) * WORLD_GRID_SIZE) / 2
 }
 
 export function buildingsOverlap(a, b) {
