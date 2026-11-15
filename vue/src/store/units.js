@@ -9,7 +9,7 @@ export default {
             selectedId: null,
             list: [
                 //TODO PLACEHOLDER, нужно делать нормальные конфиги для каждых юнитов
-                createUnit({ id: 'a', wx: 0, wy: 0, radius: 16, stats: { speed: 120 } }),
+                createUnit({ id: 'a', wx: 0, wy: 0, radius: 16 }),
                 createUnit({ id: 'b', wx: 120, wy: 80, radius: 16, stats: { speed: 220 } }),
             ],
         }

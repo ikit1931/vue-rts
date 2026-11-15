@@ -1,3 +1,5 @@
+import { DEFAULT_BUILDING_STATS, DEFAULT_UNIT_STATS } from './stats.js'
+
 let nextObjectId = 1
 
 function generateObjectId() {
@@ -29,9 +31,19 @@ export function createGameObject({
 }
 
 export function createUnit(config = {}) {
-  return createGameObject({ type: 'unit', ...config })
+  const { stats = {}, ...rest } = config
+  return createGameObject({
+    type: 'unit',
+    ...rest,
+    stats: { ...DEFAULT_UNIT_STATS, ...stats },
+  })
 }
 
 export function createBuilding(config = {}) {
-  return createGameObject({ type: 'building', ...config, stats: { speed: 0, ...config.stats } })
+  const { stats = {}, ...rest } = config
+  return createGameObject({
+    type: 'building',
+    ...rest,
+    stats: { ...DEFAULT_BUILDING_STATS, ...stats, speed: 0 },
+  })
 }
