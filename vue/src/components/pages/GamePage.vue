@@ -96,7 +96,12 @@ function onWorldClick({ button, wx, wy }) {
     store.dispatch('units/select', hit ? hit.id : null)
   } else if (button === RIGHT_BUTTON) {
     if (buildMode.value.active) {
-      store.dispatch('units/setBuildMode', { active: false, sizeN: buildMode.value.sizeN })
+      store.dispatch('units/setBuildMode', {
+        active: false,
+        sizeN: buildMode.value.sizeN,
+        buildingType: buildMode.value.buildingType,
+        spawnUnitType: buildMode.value.spawnUnitType,
+      })
       return
     }
     store.dispatch('units/moveSelectedTo', { wx, wy })
