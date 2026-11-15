@@ -21,6 +21,7 @@
     </GameViewport>
     <GameNavigationPanel />
     <GameActionPanel />
+    <GameStatsPanel />
   </div>
 </template>
 
@@ -31,6 +32,7 @@ import {
   GameActionPanel,
   GameDestinationMarker,
   GameNavigationPanel,
+  GameStatsPanel,
   GameViewport,
   GameWorldObject,
 } from '@/game'
