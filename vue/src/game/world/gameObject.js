@@ -1,3 +1,6 @@
+import { DEFAULT_GROUP } from '../config/groups.js'
+import { DEFAULT_BUILDING_STATS, DEFAULT_UNIT_STATS } from './stats.js'
+
 let nextObjectId = 1
 
 function generateObjectId() {
@@ -12,6 +15,7 @@ export function createGameObject({
   wx = 0,
   wy = 0,
   radius = 16,
+  group = DEFAULT_GROUP,
   stats = {},
   destination = null,
   ...properties
@@ -22,6 +26,7 @@ export function createGameObject({
     wx,
     wy,
     radius,
+    group,
     destination: destination ? { wx: destination.wx, wy: destination.wy } : null,
     stats: { ...stats },
     ...properties,
@@ -29,9 +34,20 @@ export function createGameObject({
 }
 
 export function createUnit(config = {}) {
-  return createGameObject({ type: 'unit', ...config })
+  const { stats = {}, ...rest } = config
+  return createGameObject({
+    type: 'unit',
+    ...rest,
+    stats: { ...DEFAULT_UNIT_STATS, ...stats },
+  })
 }
 
 export function createBuilding(config = {}) {
-  return createGameObject({ type: 'building', ...config, stats: { speed: 0, ...config.stats } })
+  const { stats = {}, sizeN = 1, ...rest } = config
+  return createGameObject({
+    type: 'building',
+    sizeN: Math.max(1, sizeN),
+    ...rest,
+    stats: { ...DEFAULT_BUILDING_STATS, ...stats, speed: 0 },
+  })
 }
