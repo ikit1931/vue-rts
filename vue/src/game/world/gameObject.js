@@ -40,9 +40,10 @@ export function createUnit(config = {}) {
 }
 
 export function createBuilding(config = {}) {
-  const { stats = {}, ...rest } = config
+  const { stats = {}, sizeN = 1, ...rest } = config
   return createGameObject({
     type: 'building',
+    sizeN: Math.max(1, sizeN),
     ...rest,
     stats: { ...DEFAULT_BUILDING_STATS, ...stats, speed: 0 },
   })

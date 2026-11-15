@@ -13,16 +13,20 @@
           :wx="unit.wx"
           :wy="unit.wy"
           :radius="unit.radius"
+          :type="unit.type"
+          :size-n="unit.sizeN || 1"
           :selected="unit.id === selectedId"
       />
     </GameViewport>
+    <GameNavigationPanel />
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useStore } from 'vuex'
-import { GameDestinationMarker, GameViewport, GameWorldObject } from '@/game'
+import { GameDestinationMarker, GameNavigationPanel, GameViewport, GameWorldObject } from '@/game'
+import { buildingHalfExtent } from '@/game/world/worldUnits.js'
 
 const LEFT_BUTTON = 0
 const RIGHT_BUTTON = 2
@@ -30,7 +34,10 @@ const RIGHT_BUTTON = 2
 const store = useStore()
 const units = computed(() => store.getters['units/units'])
 const selectedId = computed(() => store.getters['units/selectedId'])
-const unitsWithDestination = computed(() => units.value.filter((unit) => unit.destination))
+const buildMode = computed(() => store.getters['units/buildMode'])
+const unitsWithDestination = computed(() =>
+  units.value.filter((unit) => unit.type === 'unit' && unit.destination),
+)
 
 let animationFrameId = null
 let previousFrameTime = null
@@ -54,19 +61,43 @@ onUnmounted(() => {
   previousFrameTime = null
 })
 
+function findHitObject(wx, wy) {
+  let hit = null
+  let hitDistance = Infinity
+  for (const object of units.value) {
+    if (object.type === 'building') {
+      const half = buildingHalfExtent(object.sizeN ?? 1)
+      if (Math.abs(object.wx - wx) <= half && Math.abs(object.wy - wy) <= half) {
+        const distance = Math.hypot(object.wx - wx, object.wy - wy)
+        if (distance < hitDistance) {
+          hit = object
+          hitDistance = distance
+        }
+      }
+      continue
+    }
+    const distance = Math.hypot(object.wx - wx, object.wy - wy)
+    if (distance <= object.radius && distance < hitDistance) {
+      hit = object
+      hitDistance = distance
+    }
+  }
+  return hit
+}
+
 function onWorldClick({ button, wx, wy }) {
   if (button === LEFT_BUTTON) {
-    let hit = null
-    let hitDistance = Infinity
-    for (const unit of units.value) {
-      const distance = Math.hypot(unit.wx - wx, unit.wy - wy)
-      if (distance <= unit.radius && distance < hitDistance) {
-        hit = unit
-        hitDistance = distance
-      }
+    if (buildMode.value.active) {
+      store.dispatch('units/placeBuilding', { wx, wy })
+      return
     }
+    const hit = findHitObject(wx, wy)
     store.dispatch('units/select', hit ? hit.id : null)
   } else if (button === RIGHT_BUTTON) {
+    if (buildMode.value.active) {
+      store.dispatch('units/setBuildMode', { active: false, sizeN: buildMode.value.sizeN })
+      return
+    }
     store.dispatch('units/moveSelectedTo', { wx, wy })
   }
 }
