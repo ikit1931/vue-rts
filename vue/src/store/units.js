@@ -47,6 +47,10 @@ export default {
         ADD_OBJECT(state, object) {
             if (!state.list.some((item) => item.id === object.id)) state.list.push(object)
         },
+        REMOVE_OBJECT(state, id) {
+            state.list = state.list.filter((item) => item.id !== id)
+            if (state.selectedId === id) state.selectedId = null
+        },
     },
     actions: {
         select({ commit }, id) {
@@ -119,6 +123,12 @@ export default {
             })
             commit('ADD_OBJECT', unit)
             return unit
+        },
+        destroySelected({ getters, commit }) {
+            const selected = getters.selectedObject
+            if (selected?.type !== 'unit') return false
+            commit('REMOVE_OBJECT', selected.id)
+            return true
         },
     },
 }

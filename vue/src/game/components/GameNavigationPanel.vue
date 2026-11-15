@@ -22,6 +22,15 @@
         </button>
       </div>
     </template>
+
+    <template v-if="isUnitSelected">
+      <p class="game-nav-panel__title game-nav-panel__title--spaced">Персонаж</p>
+      <div class="game-nav-panel__row">
+        <button type="button" class="game-nav-panel__btn game-nav-panel__btn--danger" @click="onDestroyClick">
+          Самоуничтожение
+        </button>
+      </div>
+    </template>
   </aside>
 </template>
 
@@ -36,6 +45,7 @@ const store = useStore()
 const buildMode = computed(() => store.getters['units/buildMode'])
 const selectedObject = computed(() => store.getters['units/selectedObject'])
 const canSpawn = computed(() => store.getters['units/canSpawnFromSelected'])
+const isUnitSelected = computed(() => selectedObject.value?.type === 'unit')
 const spawnLabel = computed(() => `Создать ${selectedObject.value?.spawnUnitType ?? 'юнита'}`)
 
 function isBuildSizeActive(sizeN) {
@@ -48,6 +58,10 @@ function onBuildSizeClick(sizeN) {
 
 function onSpawnClick() {
   store.dispatch('units/spawnNearSelected')
+}
+
+function onDestroyClick() {
+  store.dispatch('units/destroySelected')
 }
 </script>
 
@@ -94,6 +108,15 @@ function onSpawnClick() {
   &--active {
     border-color: #7dff7d;
     background: #1f3a1f;
+  }
+
+  &--danger {
+    border-color: #a55;
+    background: #3a1f1f;
+
+    &:hover {
+      border-color: #d77;
+    }
   }
 }
 </style>
