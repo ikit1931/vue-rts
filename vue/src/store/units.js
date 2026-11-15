@@ -1,7 +1,7 @@
 import { BUILDING_TYPES, getBuildingTypeBySize } from '@/game/config/buildingTypes.js'
 import { AVAILABLE_GROUPS, DEFAULT_GROUP } from '@/game/config/groups.js'
 import { getUnitTypeConfig } from '@/game/config/unitTypes.js'
-import { isWorldPointInsideMap } from '@/game/world/bounds.js'
+import { isBuildingInsideMap, isWorldPointInsideMap } from '@/game/world/bounds.js'
 import { createBuilding, createGameObject, createUnit } from '@/game/world/gameObject.js'
 import { advanceGameObject } from '@/game/world/movement.js'
 import { buildingHalfExtent, buildingsOverlap, snapToWorldGrid } from '@/game/world/worldUnits.js'
@@ -99,9 +99,9 @@ export default {
         placeBuilding({ state, commit }, { wx, wy }) {
             if (!state.buildMode.active) return null
             const snapped = snapToWorldGrid(wx, wy)
-            if (!isWorldPointInsideMap(snapped.wx, snapped.wy)) return null
-
             const sizeN = state.buildMode.sizeN
+            if (!isBuildingInsideMap(snapped.wx, snapped.wy, sizeN)) return null
+
             const occupied = state.list.some(
                 (item) =>
                     item.type === 'building' &&
