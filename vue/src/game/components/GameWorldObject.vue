@@ -75,10 +75,9 @@ const position = computed(() =>
 
 const ring = computed(() => {
   if (isBuilding.value) {
-    const k = sizeN.value * Math.SQRT2 / 2
     return {
-      rx: k * ISO_TILE_WIDTH,
-      ry: k * ISO_TILE_HEIGHT,
+      rx: sizeN.value * (ISO_TILE_WIDTH / 2),
+      ry: sizeN.value * (ISO_TILE_HEIGHT / 2),
     }
   }
   const k = (props.radius * Math.SQRT2) / WORLD_GRID_SIZE
