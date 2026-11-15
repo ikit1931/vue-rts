@@ -130,13 +130,21 @@ export default {
 
             const half = buildingHalfExtent(building.sizeN ?? 1)
             const radius = unitConfig.radius ?? 16
-            const wx = building.wx + half + radius
-            const wy = building.wy
-            if (!isWorldPointInsideMap(wx, wy)) return null
+            const offset = half + radius
+            const spawnCandidates = [
+                { wx: building.wx + offset, wy: building.wy },
+                { wx: building.wx - offset, wy: building.wy },
+                { wx: building.wx, wy: building.wy - offset },
+                { wx: building.wx, wy: building.wy + offset },
+            ]
+            const spawnPoint = spawnCandidates.find((point) =>
+                isWorldPointInsideMap(point.wx, point.wy),
+            )
+            if (!spawnPoint) return null
 
             const unit = createUnit({
-                wx,
-                wy,
+                wx: spawnPoint.wx,
+                wy: spawnPoint.wy,
                 radius,
                 unitType: unitConfig.unitType,
                 stats: unitConfig.stats,
