@@ -3,7 +3,6 @@ import { AVAILABLE_GROUPS, DEFAULT_GROUP } from '@/game/config/groups.js'
 import { getUnitTypeConfig } from '@/game/config/unitTypes.js'
 import { isBuildingInsideMap, isWorldPointInsideMap } from '@/game/world/bounds.js'
 import { createBuilding, createGameObject, createUnit } from '@/game/world/gameObject.js'
-import { advanceGameObject } from '@/game/world/movement.js'
 import { buildingHalfExtent, buildingsOverlap, snapToWorldGrid } from '@/game/world/worldUnits.js'
 
 export default {
@@ -46,6 +45,7 @@ export default {
         },
     },
     mutations: {
+        SET_OBJECTS(state, objects) { state.list = objects },
         SELECT(state, id) {
             state.selectedId = id
         },
@@ -68,11 +68,8 @@ export default {
         SET_DESTINATION(state, { id, wx, wy }) {
             const unit = state.list.find((item) => item.id === id)
             if (unit) {
-                unit.destination = { wx, wy }
+                unit.destination = Number.isFinite(wx) && Number.isFinite(wy) ? { wx, wy } : null
             }
-        },
-        ADVANCE(state, elapsedSeconds) {
-            for (const item of state.list) advanceGameObject(item, elapsedSeconds)
         },
         ADD_OBJECT(state, object) {
             if (!state.list.some((item) => item.id === object.id)) state.list.push(object)
@@ -102,14 +99,13 @@ export default {
                 spawnUnitType: option.spawnUnitType ?? null,
             })
         },
-        moveSelectedTo({ state, commit }, { wx, wy }) {
+        moveSelectedTo({ dispatch }, payload) { return dispatch('queueMove', payload) },
+        advance({ dispatch }, elapsedSeconds) { return dispatch('game/step', elapsedSeconds, { root: true }) },
+        queueMove({ state, rootState, commit }, { wx, wy, append = false }) {
             const selected = state.list.find((item) => item.id === state.selectedId)
-            if (selected?.type === 'unit' && isWorldPointInsideMap(wx, wy)) {
-                commit('SET_DESTINATION', { id: state.selectedId, wx, wy })
-            }
-        },
-        advance({ commit }, elapsedSeconds) {
-            commit('ADVANCE', elapsedSeconds)
+            if (selected?.type !== 'unit' || !isWorldPointInsideMap(wx, wy) || rootState.game.winner !== null) return
+            commit('events/ENQUEUE', { ids: [selected.id], event: { type: 'move', wx, wy }, append }, { root: true })
+            if (!append) commit('SET_DESTINATION', { id: selected.id, wx, wy })
         },
         addObject({ commit }, config) {
             const object = createGameObject(config)
@@ -176,10 +172,12 @@ export default {
             commit('ADD_OBJECT', unit)
             return unit
         },
-        destroySelected({ getters, commit }) {
+        destroySelected({ getters, commit, dispatch }) {
             const selected = getters.selectedObject
             if (selected?.type !== 'unit') return false
             commit('REMOVE_OBJECT', selected.id)
+            commit('events/REMOVE', selected.id, { root: true })
+            dispatch('game/checkWinner', null, { root: true })
             return true
         },
     },

@@ -22,6 +22,12 @@
     <GameNavigationPanel />
     <GameActionPanel />
     <GameStatsPanel />
+    <aside class="game-controls">
+      <button type="button" @click="store.dispatch('game/togglePause')">{{ paused ? 'Продолжить' : 'Пауза' }}</button>
+      <button type="button" @click="store.dispatch('game/startScenario', 'duel')">Сценарий: дуэль</button>
+      <button type="button" @click="store.dispatch('game/startScenario', 'fortress')">Сценарий: крепость</button>
+      <span v-if="winner !== null">{{ winner === 'draw' ? 'Ничья' : `Победа группы ${winner}` }}</span>
+    </aside>
   </div>
 </template>
 
@@ -45,6 +51,8 @@ const store = useStore()
 const units = computed(() => store.getters['units/units'])
 const selectedId = computed(() => store.getters['units/selectedId'])
 const buildMode = computed(() => store.getters['units/buildMode'])
+const paused = computed(() => store.getters['game/paused'])
+const winner = computed(() => store.getters['game/winner'])
 const unitsWithDestination = computed(() =>
   units.value.filter((unit) => unit.type === 'unit' && unit.destination),
 )
@@ -56,7 +64,7 @@ function advanceUnits(frameTime) {
   if (previousFrameTime !== null) {
     // Bound large pauses (for example, switching back to the tab) to avoid teleporting.
     const elapsedSeconds = Math.min((frameTime - previousFrameTime) / 1000, 0.1)
-    store.dispatch('units/advance', elapsedSeconds)
+    store.dispatch('game/step', elapsedSeconds)
   }
   previousFrameTime = frameTime
   animationFrameId = requestAnimationFrame(advanceUnits)
@@ -95,7 +103,7 @@ function findHitObject(wx, wy) {
   return hit
 }
 
-function onWorldClick({ button, wx, wy }) {
+function onWorldClick({ button, wx, wy, shiftKey }) {
   if (button === LEFT_BUTTON) {
     if (buildMode.value.active) {
       store.dispatch('units/placeBuilding', { wx, wy })
@@ -113,7 +121,14 @@ function onWorldClick({ button, wx, wy }) {
       })
       return
     }
-    store.dispatch('units/moveSelectedTo', { wx, wy })
+    const target = findHitObject(wx, wy)
+    const selected = store.getters['units/selectedObject']
+    if (target && selected?.type === 'unit' && target.group !== selected.group) {
+      store.commit('events/ENQUEUE', { ids: [selected.id], event: { type: 'attack', targetId: target.id }, append: shiftKey })
+      if (!shiftKey) store.commit('units/SET_DESTINATION', { id: selected.id })
+    } else {
+      store.dispatch('units/queueMove', { wx, wy, append: shiftKey })
+    }
   }
 }
 </script>
@@ -127,4 +142,6 @@ function onWorldClick({ button, wx, wy }) {
   margin: 0;
   padding: 0;
 }
+.game-controls { position: absolute; top: 12px; right: 12px; display: flex; gap: 6px; align-items: center; color: white; background: #1a241ddd; padding: 8px; border-radius: 6px; }
+.game-controls button { cursor: pointer; }
 </style>

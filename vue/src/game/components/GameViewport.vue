@@ -61,9 +61,9 @@ const gridLines = computed(() => buildIsometricGridLines(camera.value))
 let resizeObserver
 
 useCameraPan(viewportEl, () => camera.value, {
-  onClick: (sx, sy, button) => {
+  onClick: (sx, sy, button, shiftKey) => {
     const { wx, wy} = screenToWorld(sx, sy, camera.value, viewportSize.value)
-    emit('world-click', { button, wx, wy })
+    emit('world-click', { button, wx, wy, shiftKey })
   },
   onPanCamera: (deltaWx, deltaWy) => {
     store.dispatch('camera/panCamera', { deltaWx, deltaWy })

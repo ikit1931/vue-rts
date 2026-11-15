@@ -65,7 +65,7 @@ export function useCameraPan(viewportEl, getCamera, { onPanCamera, onZoomAtScree
     mountedElement?.releasePointerCapture(event.pointerId)
     if (!dragging && event.type === 'pointerup') {
       const rect = mountedElement.getBoundingClientRect()
-      onClick?.(event.clientX - rect.left, event.clientY - rect.top, pressedButton)
+      onClick?.(event.clientX - rect.left, event.clientY - rect.top, pressedButton, event.shiftKey)
     }
   }
 
