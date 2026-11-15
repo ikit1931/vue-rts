@@ -19,7 +19,6 @@ export default {
                 spawnUnitType: null,
             },
             list: [
-                //TODO PLACEHOLDER, нужно делать нормальные конфиги для каждых юнитов
                 createUnit({ id: 'a', wx: 0, wy: 0, radius: 16, group: 1 }),
                 createUnit({ id: 'b', wx: 120, wy: 80, radius: 16, group: 2, stats: { speed: 220 } }),
                 createBuilding({
@@ -27,7 +26,7 @@ export default {
                     wx: 200,
                     wy: -80,
                     sizeN: BUILDING_TYPES.barracks.sizeN,
-                    buildingType: BUILDING_TYPES.barracks.buildingType,
+                    buildingType: 'barracks',
                     spawnUnitType: BUILDING_TYPES.barracks.spawnUnitType,
                     group: 2,
                 }),
@@ -166,7 +165,7 @@ export default {
                 wx: spawnPoint.wx,
                 wy: spawnPoint.wy,
                 radius,
-                unitType: unitConfig.unitType,
+                unitType: building.spawnUnitType,
                 stats: unitConfig.stats,
                 group: building.group ?? DEFAULT_GROUP,
             })

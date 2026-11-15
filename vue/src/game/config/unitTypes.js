@@ -2,13 +2,11 @@ import { DEFAULT_UNIT_STATS } from '../world/stats.js'
 
 export const UNIT_TYPES = {
   soldier: {
-    unitType: 'soldier',
     label: 'пехотинец',
     radius: 16,
     stats: { ...DEFAULT_UNIT_STATS },
   },
   scout: {
-    unitType: 'scout',
     label: 'разведчик',
     radius: 14,
     stats: { ...DEFAULT_UNIT_STATS, speed: 180, attack: 6, hp: 70 },
