@@ -4,7 +4,7 @@ import { getUnitTypeConfig } from '@/game/config/unitTypes.js'
 import { isWorldPointInsideMap } from '@/game/world/bounds.js'
 import { createBuilding, createGameObject, createUnit } from '@/game/world/gameObject.js'
 import { advanceGameObject } from '@/game/world/movement.js'
-import { buildingHalfExtent, snapToWorldGrid } from '@/game/world/worldUnits.js'
+import { buildingHalfExtent, buildingsOverlap, snapToWorldGrid } from '@/game/world/worldUnits.js'
 
 export default {
     namespaced: true,
@@ -101,19 +101,19 @@ export default {
             const snapped = snapToWorldGrid(wx, wy)
             if (!isWorldPointInsideMap(snapped.wx, snapped.wy)) return null
 
+            const sizeN = state.buildMode.sizeN
             const occupied = state.list.some(
                 (item) =>
                     item.type === 'building' &&
-                    item.wx === snapped.wx &&
-                    item.wy === snapped.wy,
+                    buildingsOverlap(item, { wx: snapped.wx, wy: snapped.wy, sizeN }),
             )
             if (occupied) return null
 
-            const buildingType = getBuildingTypeBySize(state.buildMode.sizeN)
+            const buildingType = getBuildingTypeBySize(sizeN)
             const building = createBuilding({
                 wx: snapped.wx,
                 wy: snapped.wy,
-                sizeN: state.buildMode.sizeN,
+                sizeN,
                 buildingType: buildingType?.buildingType ?? null,
                 spawnUnitType: buildingType?.spawnUnitType ?? null,
                 group: state.activeGroup,
