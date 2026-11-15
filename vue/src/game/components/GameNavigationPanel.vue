@@ -22,8 +22,8 @@
         :key="option.sizeN"
         type="button"
         class="game-nav-panel__btn"
-        :class="{ 'game-nav-panel__btn--active': isBuildSizeActive(option.sizeN) }"
-        @click="onBuildSizeClick(option.sizeN)"
+        :class="{ 'game-nav-panel__btn--active': isBuildOptionActive(option) }"
+        @click="onBuildOptionClick(option)"
       >
         {{ option.sizeN }}x{{ option.sizeN }}
       </button>
@@ -75,16 +75,16 @@ function groupColor(group) {
   return getGroupColor(group)
 }
 
-function isBuildSizeActive(sizeN) {
-  return buildMode.value.active && buildMode.value.sizeN === sizeN
+function isBuildOptionActive(option) {
+  return buildMode.value.active && buildMode.value.buildingType === option.buildingType
 }
 
 function onGroupClick(group) {
   store.dispatch('units/setActiveGroup', group)
 }
 
-function onBuildSizeClick(sizeN) {
-  store.dispatch('units/toggleBuildSize', sizeN)
+function onBuildOptionClick(option) {
+  store.dispatch('units/toggleBuildOption', option)
 }
 
 function onSpawnClick() {

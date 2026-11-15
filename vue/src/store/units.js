@@ -1,4 +1,4 @@
-import { BUILDING_TYPES, getBuildingTypeBySize } from '@/game/config/buildingTypes.js'
+import { BUILDING_TYPES } from '@/game/config/buildingTypes.js'
 import { AVAILABLE_GROUPS, DEFAULT_GROUP } from '@/game/config/groups.js'
 import { getUnitTypeConfig } from '@/game/config/unitTypes.js'
 import { isBuildingInsideMap, isWorldPointInsideMap } from '@/game/world/bounds.js'
@@ -12,7 +12,12 @@ export default {
         return {
             selectedId: null,
             activeGroup: DEFAULT_GROUP,
-            buildMode: { active: false, sizeN: 1 },
+            buildMode: {
+                active: false,
+                sizeN: 1,
+                buildingType: null,
+                spawnUnitType: null,
+            },
             list: [
                 //TODO PLACEHOLDER, нужно делать нормальные конфиги для каждых юнитов
                 createUnit({ id: 'a', wx: 0, wy: 0, radius: 16, group: 1 }),
@@ -48,8 +53,18 @@ export default {
         SET_ACTIVE_GROUP(state, group) {
             state.activeGroup = AVAILABLE_GROUPS.includes(group) ? group : DEFAULT_GROUP
         },
-        SET_BUILD_MODE(state, { active, sizeN = 1 }) {
-            state.buildMode = { active: Boolean(active), sizeN: Math.max(1, sizeN) }
+        SET_BUILD_MODE(state, {
+            active,
+            sizeN = 1,
+            buildingType = null,
+            spawnUnitType = null,
+        }) {
+            state.buildMode = {
+                active: Boolean(active),
+                sizeN: Math.max(1, sizeN),
+                buildingType,
+                spawnUnitType,
+            }
         },
         SET_DESTINATION(state, { id, wx, wy }) {
             const unit = state.list.find((item) => item.id === id)
@@ -78,9 +93,15 @@ export default {
         setBuildMode({ commit }, payload) {
             commit('SET_BUILD_MODE', payload)
         },
-        toggleBuildSize({ state, commit }, sizeN) {
-            const same = state.buildMode.active && state.buildMode.sizeN === sizeN
-            commit('SET_BUILD_MODE', { active: !same, sizeN })
+        toggleBuildOption({ state, commit }, option) {
+            const same =
+                state.buildMode.active && state.buildMode.buildingType === option.buildingType
+            commit('SET_BUILD_MODE', {
+                active: !same,
+                sizeN: option.sizeN,
+                buildingType: option.buildingType,
+                spawnUnitType: option.spawnUnitType ?? null,
+            })
         },
         moveSelectedTo({ state, commit }, { wx, wy }) {
             const selected = state.list.find((item) => item.id === state.selectedId)
@@ -109,13 +130,12 @@ export default {
             )
             if (occupied) return null
 
-            const buildingType = getBuildingTypeBySize(sizeN)
             const building = createBuilding({
                 wx: snapped.wx,
                 wy: snapped.wy,
                 sizeN,
-                buildingType: buildingType?.buildingType ?? null,
-                spawnUnitType: buildingType?.spawnUnitType ?? null,
+                buildingType: state.buildMode.buildingType,
+                spawnUnitType: state.buildMode.spawnUnitType,
                 group: state.activeGroup,
             })
             commit('ADD_OBJECT', building)
