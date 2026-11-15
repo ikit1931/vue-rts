@@ -156,8 +156,12 @@ export default {
                 { wx: building.wx, wy: building.wy - offset },
                 { wx: building.wx, wy: building.wy + offset },
             ]
-            const spawnPoint = spawnCandidates.find((point) =>
-                isWorldPointInsideMap(point.wx, point.wy),
+            const spawnPoint = spawnCandidates.find(
+                (point) =>
+                    isWorldPointInsideMap(point.wx - radius, point.wy - radius) &&
+                    isWorldPointInsideMap(point.wx + radius, point.wy - radius) &&
+                    isWorldPointInsideMap(point.wx + radius, point.wy + radius) &&
+                    isWorldPointInsideMap(point.wx - radius, point.wy + radius),
             )
             if (!spawnPoint) return null
 
