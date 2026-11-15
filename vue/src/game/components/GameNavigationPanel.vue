@@ -54,6 +54,7 @@ import { computed } from 'vue'
 import { useStore } from 'vuex'
 import { BUILD_OPTIONS } from '@/game/config/buildingTypes.js'
 import { getGroupColor } from '@/game/config/groups.js'
+import { getUnitTypeConfig } from '@/game/config/unitTypes.js'
 
 const buildOptions = BUILD_OPTIONS
 
@@ -64,7 +65,11 @@ const availableGroups = computed(() => store.getters['units/availableGroups'])
 const selectedObject = computed(() => store.getters['units/selectedObject'])
 const canSpawn = computed(() => store.getters['units/canSpawnFromSelected'])
 const isUnitSelected = computed(() => selectedObject.value?.type === 'unit')
-const spawnLabel = computed(() => `Создать ${selectedObject.value?.spawnUnitType ?? 'юнита'}`)
+const spawnLabel = computed(() => {
+  const unitType = selectedObject.value?.spawnUnitType
+  const label = unitType ? getUnitTypeConfig(unitType)?.label : null
+  return `Создать ${label ?? 'юнита'}`
+})
 
 function groupColor(group) {
   return getGroupColor(group)
