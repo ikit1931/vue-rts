@@ -3,27 +3,40 @@
     <p class="game-nav-panel__title">Постройка</p>
     <div class="game-nav-panel__row">
       <button
-        v-for="sizeN in buildingSizes"
-        :key="sizeN"
+        v-for="option in buildOptions"
+        :key="option.sizeN"
         type="button"
         class="game-nav-panel__btn"
-        :class="{ 'game-nav-panel__btn--active': isBuildSizeActive(sizeN) }"
-        @click="onBuildSizeClick(sizeN)"
+        :class="{ 'game-nav-panel__btn--active': isBuildSizeActive(option.sizeN) }"
+        @click="onBuildSizeClick(option.sizeN)"
       >
-        {{ sizeN }}x{{ sizeN }}
+        {{ option.sizeN }}x{{ option.sizeN }}
       </button>
     </div>
+
+    <template v-if="canSpawn">
+      <p class="game-nav-panel__title game-nav-panel__title--spaced">Спавн</p>
+      <div class="game-nav-panel__row">
+        <button type="button" class="game-nav-panel__btn" @click="onSpawnClick">
+          {{ spawnLabel }}
+        </button>
+      </div>
+    </template>
   </aside>
 </template>
 
 <script setup>
 import { computed } from 'vue'
 import { useStore } from 'vuex'
+import { BUILD_OPTIONS } from '@/game/config/buildingTypes.js'
 
-const buildingSizes = [1, 2, 3]
+const buildOptions = BUILD_OPTIONS
 
 const store = useStore()
 const buildMode = computed(() => store.getters['units/buildMode'])
+const selectedObject = computed(() => store.getters['units/selectedObject'])
+const canSpawn = computed(() => store.getters['units/canSpawnFromSelected'])
+const spawnLabel = computed(() => `Создать ${selectedObject.value?.spawnUnitType ?? 'юнита'}`)
 
 function isBuildSizeActive(sizeN) {
   return buildMode.value.active && buildMode.value.sizeN === sizeN
@@ -31,6 +44,10 @@ function isBuildSizeActive(sizeN) {
 
 function onBuildSizeClick(sizeN) {
   store.dispatch('units/toggleBuildSize', sizeN)
+}
+
+function onSpawnClick() {
+  store.dispatch('units/spawnNearSelected')
 }
 </script>
 
@@ -51,6 +68,10 @@ function onBuildSizeClick(sizeN) {
 
 .game-nav-panel__title {
   margin: 0 0 8px;
+
+  &--spaced {
+    margin-top: 12px;
+  }
 }
 
 .game-nav-panel__row {
