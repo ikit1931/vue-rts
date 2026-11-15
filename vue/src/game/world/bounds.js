@@ -1,3 +1,5 @@
+import { buildingHalfExtent } from './worldUnits.js'
+
 export const WORLD_MAP_HALF_EXTENT = 2400
 
 export const MAP_FIELD_IS_UNBOUNDED = false
@@ -15,4 +17,14 @@ export function isWorldPointInsideMap(wx, wy) {
   }
   const { minWx, maxWx, minWy, maxWy } = MAP_LOGICAL_BOUNDS
   return wx >= minWx && wx <= maxWx && wy >= minWy && wy <= maxWy
+}
+
+export function isBuildingInsideMap(wx, wy, sizeN) {
+  const half = buildingHalfExtent(sizeN)
+  return (
+    isWorldPointInsideMap(wx - half, wy - half) &&
+    isWorldPointInsideMap(wx + half, wy - half) &&
+    isWorldPointInsideMap(wx + half, wy + half) &&
+    isWorldPointInsideMap(wx - half, wy + half)
+  )
 }
