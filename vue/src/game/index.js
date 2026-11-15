@@ -5,6 +5,7 @@ export { createGameObject, createUnit, createBuilding } from './world/gameObject
 export { DEFAULT_UNIT_STATS, DEFAULT_BUILDING_STATS } from './world/stats.js'
 export { BUILDING_TYPES, BUILD_OPTIONS } from './config/buildingTypes.js'
 export { UNIT_TYPES } from './config/unitTypes.js'
+export { AVAILABLE_GROUPS, DEFAULT_GROUP, GROUP_COLORS, getGroupColor } from './config/groups.js'
 export { advanceGameObject } from './world/movement.js'
 export { default as GameViewport } from './components/GameViewport.vue'
 export { default as GameWorldObject } from './components/GameWorldObject.vue'
