@@ -20,13 +20,20 @@
       />
     </GameViewport>
     <GameNavigationPanel />
+    <GameActionPanel />
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, onUnmounted } from 'vue'
 import { useStore } from 'vuex'
-import { GameDestinationMarker, GameNavigationPanel, GameViewport, GameWorldObject } from '@/game'
+import {
+  GameActionPanel,
+  GameDestinationMarker,
+  GameNavigationPanel,
+  GameViewport,
+  GameWorldObject,
+} from '@/game'
 import { buildingHalfExtent } from '@/game/world/worldUnits.js'
 
 const LEFT_BUTTON = 0

@@ -1,13 +1,13 @@
 <template>
-  <aside class="game-nav-panel">
-    <p class="game-nav-panel__title">Группа</p>
-    <div class="game-nav-panel__row">
+  <aside class="game-panel game-nav-panel">
+    <p class="game-panel__title">Группа</p>
+    <div class="game-panel__row">
       <button
         v-for="group in availableGroups"
         :key="group"
         type="button"
-        class="game-nav-panel__btn"
-        :class="{ 'game-nav-panel__btn--active': activeGroup === group }"
+        class="game-panel__btn"
+        :class="{ 'game-panel__btn--active': activeGroup === group }"
         :style="{ borderColor: groupColor(group) }"
         @click="onGroupClick(group)"
       >
@@ -15,37 +15,19 @@
       </button>
     </div>
 
-    <p class="game-nav-panel__title game-nav-panel__title--spaced">Постройка</p>
-    <div class="game-nav-panel__row">
+    <p class="game-panel__title game-panel__title--spaced">Постройка</p>
+    <div class="game-panel__row">
       <button
         v-for="option in buildOptions"
         :key="option.sizeN"
         type="button"
-        class="game-nav-panel__btn"
-        :class="{ 'game-nav-panel__btn--active': isBuildOptionActive(option) }"
+        class="game-panel__btn"
+        :class="{ 'game-panel__btn--active': isBuildOptionActive(option) }"
         @click="onBuildOptionClick(option)"
       >
         {{ option.label }} {{ option.sizeN }}x{{ option.sizeN }}
       </button>
     </div>
-
-    <template v-if="canSpawn">
-      <p class="game-nav-panel__title game-nav-panel__title--spaced">Спавн</p>
-      <div class="game-nav-panel__row">
-        <button type="button" class="game-nav-panel__btn" @click="onSpawnClick">
-          {{ spawnLabel }}
-        </button>
-      </div>
-    </template>
-
-    <template v-if="isUnitSelected">
-      <p class="game-nav-panel__title game-nav-panel__title--spaced">Персонаж</p>
-      <div class="game-nav-panel__row">
-        <button type="button" class="game-nav-panel__btn game-nav-panel__btn--danger" @click="onDestroyClick">
-          Самоуничтожение
-        </button>
-      </div>
-    </template>
   </aside>
 </template>
 
@@ -54,7 +36,6 @@ import { computed } from 'vue'
 import { useStore } from 'vuex'
 import { BUILD_OPTIONS } from '@/game/config/buildingTypes.js'
 import { getGroupColor } from '@/game/config/groups.js'
-import { getUnitTypeConfig } from '@/game/config/unitTypes.js'
 
 const buildOptions = BUILD_OPTIONS
 
@@ -62,14 +43,6 @@ const store = useStore()
 const buildMode = computed(() => store.getters['units/buildMode'])
 const activeGroup = computed(() => store.getters['units/activeGroup'])
 const availableGroups = computed(() => store.getters['units/availableGroups'])
-const selectedObject = computed(() => store.getters['units/selectedObject'])
-const canSpawn = computed(() => store.getters['units/canSpawnFromSelected'])
-const isUnitSelected = computed(() => selectedObject.value?.type === 'unit')
-const spawnLabel = computed(() => {
-  const unitType = selectedObject.value?.spawnUnitType
-  const label = unitType ? getUnitTypeConfig(unitType)?.label : null
-  return `Создать ${label ?? 'юнита'}`
-})
 
 function groupColor(group) {
   return getGroupColor(group)
@@ -86,68 +59,18 @@ function onGroupClick(group) {
 function onBuildOptionClick(option) {
   store.dispatch('units/toggleBuildOption', option)
 }
-
-function onSpawnClick() {
-  store.dispatch('units/spawnNearSelected')
-}
-
-function onDestroyClick() {
-  store.dispatch('units/destroySelected')
-}
 </script>
 
 <style scoped lang="scss">
+@use './gamePanel.scss';
+
 .game-nav-panel {
-  position: absolute;
   left: 12px;
-  bottom: 12px;
-  z-index: 2;
-  padding: 10px 12px;
-  background: rgba(18, 18, 18, 0.85);
-  border: 1px solid #555;
-  color: #eee;
-  font-family: Consolas, "Courier New", monospace;
-  font-size: 13px;
-  pointer-events: auto;
+  max-width: 240px;
 }
 
-.game-nav-panel__title {
-  margin: 0 0 8px;
-
-  &--spaced {
-    margin-top: 12px;
-  }
-}
-
-.game-nav-panel__row {
-  display: flex;
-  gap: 6px;
-}
-
-.game-nav-panel__btn {
-  min-width: 48px;
-  padding: 6px 8px;
-  border: 1px solid #777;
-  background: #2a2a2a;
-  color: inherit;
-  cursor: pointer;
-
-  &:hover {
-    border-color: #bbb;
-  }
-
-  &--active {
-    border-color: #7dff7d;
-    background: #1f3a1f;
-  }
-
-  &--danger {
-    border-color: #a55;
-    background: #3a1f1f;
-
-    &:hover {
-      border-color: #d77;
-    }
-  }
+.game-panel__btn--active {
+  border-color: #7dff7d;
+  background: #1f3a1f;
 }
 </style>
