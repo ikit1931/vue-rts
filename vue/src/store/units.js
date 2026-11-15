@@ -2,6 +2,7 @@ import { BUILDING_TYPES } from '@/game/config/buildingTypes.js'
 import { AVAILABLE_GROUPS, DEFAULT_GROUP } from '@/game/config/groups.js'
 import { getUnitTypeConfig } from '@/game/config/unitTypes.js'
 import { isBuildingInsideMap, isWorldPointInsideMap } from '@/game/world/bounds.js'
+import { formationSlots } from '@/game/world/formation.js'
 import { createBuilding, createGameObject, createUnit } from '@/game/world/gameObject.js'
 import { buildingHalfExtent, buildingsOverlap, snapToWorldGrid } from '@/game/world/worldUnits.js'
 
@@ -9,7 +10,7 @@ export default {
     namespaced: true,
     state() {
         return {
-            selectedId: null,
+            selectedIds: [],
             activeGroup: DEFAULT_GROUP,
             buildMode: {
                 active: false,
@@ -34,20 +35,30 @@ export default {
     },
     getters: {
         units: (state) => state.list,
-        selectedId: (state) => state.selectedId,
+        selectedIds: (state) => state.selectedIds,
+        selectedId: (state) => (state.selectedIds.length === 1 ? state.selectedIds[0] : null),
         activeGroup: (state) => state.activeGroup,
         availableGroups: () => AVAILABLE_GROUPS,
         buildMode: (state) => state.buildMode,
-        selectedObject: (state) => state.list.find((item) => item.id === state.selectedId) ?? null,
+        selectedObjects: (state) => state.list.filter((item) => state.selectedIds.includes(item.id)),
+        selectedUnits: (state, getters) => getters.selectedObjects.filter((item) => item.type === 'unit'),
+        selectedObject: (state, getters) =>
+            getters.selectedObjects.length === 1 ? getters.selectedObjects[0] : null,
         canSpawnFromSelected: (state, getters) => {
             const selected = getters.selectedObject
             return Boolean(selected?.type === 'building' && selected.spawnUnitType)
         },
     },
     mutations: {
-        SET_OBJECTS(state, objects) { state.list = objects },
+        SET_OBJECTS(state, objects) {
+            state.list = objects
+            state.selectedIds = state.selectedIds.filter((id) => objects.some((item) => item.id === id))
+        },
         SELECT(state, id) {
-            state.selectedId = id
+            state.selectedIds = id ? [id] : []
+        },
+        SET_SELECTION(state, ids) {
+            state.selectedIds = ids
         },
         SET_ACTIVE_GROUP(state, group) {
             state.activeGroup = AVAILABLE_GROUPS.includes(group) ? group : DEFAULT_GROUP
@@ -76,12 +87,37 @@ export default {
         },
         REMOVE_OBJECT(state, id) {
             state.list = state.list.filter((item) => item.id !== id)
-            if (state.selectedId === id) state.selectedId = null
+            state.selectedIds = state.selectedIds.filter((selectedId) => selectedId !== id)
         },
     },
     actions: {
         select({ commit }, id) {
             commit('SELECT', id)
+        },
+        toggleSelect({ state, commit }, id) {
+            const object = state.list.find((item) => item.id === id)
+            if (!object) return
+            if (object.type !== 'unit') {
+                commit('SET_SELECTION', [id])
+                return
+            }
+            const selectedUnitIds = state.list
+                .filter((item) => item.type === 'unit' && state.selectedIds.includes(item.id))
+                .map((item) => item.id)
+            commit(
+                'SET_SELECTION',
+                selectedUnitIds.includes(id)
+                    ? selectedUnitIds.filter((selectedId) => selectedId !== id)
+                    : [...selectedUnitIds, id],
+            )
+        },
+        selectMany({ state, commit }, { ids, additive = false }) {
+            const kept = additive
+                ? state.list
+                    .filter((item) => item.type === 'unit' && state.selectedIds.includes(item.id))
+                    .map((item) => item.id)
+                : []
+            commit('SET_SELECTION', [...new Set([...kept, ...ids])])
         },
         setActiveGroup({ commit }, group) {
             commit('SET_ACTIVE_GROUP', group)
@@ -101,11 +137,34 @@ export default {
         },
         moveSelectedTo({ dispatch }, payload) { return dispatch('queueMove', payload) },
         advance({ dispatch }, elapsedSeconds) { return dispatch('game/step', elapsedSeconds, { root: true }) },
-        queueMove({ state, rootState, commit }, { wx, wy, append = false }) {
-            const selected = state.list.find((item) => item.id === state.selectedId)
-            if (selected?.type !== 'unit' || !isWorldPointInsideMap(wx, wy) || rootState.game.winner !== null) return
-            commit('events/ENQUEUE', { ids: [selected.id], event: { type: 'move', wx, wy }, append }, { root: true })
-            if (!append) commit('SET_DESTINATION', { id: selected.id, wx, wy })
+        queueMove({ getters, rootState, commit }, { wx, wy, append = false, units = getters.selectedUnits }) {
+            if (units.length === 0 || !isWorldPointInsideMap(wx, wy) || rootState.game.winner !== null) return
+            const slots = formationSlots(wx, wy, units.length)
+            units.forEach((unit, index) => {
+                const slot = slots[index]
+                commit('events/ENQUEUE', { ids: [unit.id], event: { type: 'move', ...slot }, append }, { root: true })
+                if (!append) commit('SET_DESTINATION', { id: unit.id, ...slot })
+            })
+        },
+        queueAttack({ state, getters, rootState, commit }, { targetId, append = false, units = getters.selectedUnits }) {
+            const target = state.list.find((item) => item.id === targetId)
+            if (!target || rootState.game.winner !== null) return []
+            const attackers = units.filter((unit) => unit.id !== target.id && unit.group !== target.group)
+            if (attackers.length === 0) return []
+            commit(
+                'events/ENQUEUE',
+                { ids: attackers.map((unit) => unit.id), event: { type: 'attack', targetId }, append },
+                { root: true },
+            )
+            if (!append) attackers.forEach((unit) => commit('SET_DESTINATION', { id: unit.id }))
+            return attackers
+        },
+        async commandSelected({ getters, dispatch }, { wx, wy, targetId = null, append = false }) {
+            const units = getters.selectedUnits
+            if (units.length === 0) return
+            const attackers = targetId ? await dispatch('queueAttack', { targetId, append, units }) : []
+            const movers = units.filter((unit) => !attackers.includes(unit))
+            if (movers.length > 0) await dispatch('queueMove', { wx, wy, append, units: movers })
         },
         addObject({ commit }, config) {
             const object = createGameObject(config)
@@ -173,10 +232,12 @@ export default {
             return unit
         },
         destroySelected({ getters, commit, dispatch }) {
-            const selected = getters.selectedObject
-            if (selected?.type !== 'unit') return false
-            commit('REMOVE_OBJECT', selected.id)
-            commit('events/REMOVE', selected.id, { root: true })
+            const units = getters.selectedUnits
+            if (units.length === 0) return false
+            for (const unit of units) {
+                commit('REMOVE_OBJECT', unit.id)
+                commit('events/REMOVE', unit.id, { root: true })
+            }
             dispatch('game/checkWinner', null, { root: true })
             return true
         },

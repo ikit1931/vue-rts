@@ -8,18 +8,17 @@ function generateObjectId() {
   return `game-object-${Date.now()}-${nextObjectId++}`
 }
 
-/** Creates a plain, Vuex-friendly game object that can be extended by type. */
 export function createGameObject({
-  id = generateObjectId(),
-  type = 'unit',
-  wx = 0,
-  wy = 0,
-  radius = 16,
-  group = DEFAULT_GROUP,
-  stats = {},
-  destination = null,
-  ...properties
-} = {}) {
+                                   id = generateObjectId(),
+                                   type = 'unit',
+                                   wx = 0,
+                                   wy = 0,
+                                   radius = 16,
+                                   group = DEFAULT_GROUP,
+                                   stats = {},
+                                   destination = null,
+                                   ...properties
+                                 } = {}) {
   return {
     id,
     type,
@@ -35,19 +34,23 @@ export function createGameObject({
 
 export function createUnit(config = {}) {
   const { stats = {}, ...rest } = config
+  const mergedStats = { ...DEFAULT_UNIT_STATS, ...stats }
   return createGameObject({
     type: 'unit',
     ...rest,
-    stats: { ...DEFAULT_UNIT_STATS, ...stats },
+    stats: mergedStats,
+    maxHp: mergedStats.hp,
   })
 }
 
 export function createBuilding(config = {}) {
   const { stats = {}, sizeN = 1, ...rest } = config
+  const mergedStats = { ...DEFAULT_BUILDING_STATS, ...stats, speed: 0 }
   return createGameObject({
     type: 'building',
     sizeN: Math.max(1, sizeN),
     ...rest,
-    stats: { ...DEFAULT_BUILDING_STATS, ...stats, speed: 0 },
+    stats: mergedStats,
+    maxHp: mergedStats.hp,
   })
 }

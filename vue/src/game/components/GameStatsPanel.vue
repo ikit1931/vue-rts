@@ -1,11 +1,14 @@
 <template>
-  <aside v-if="selectedObject" class="game-panel game-stats-panel">
+  <aside v-if="selectedCount > 1" class="game-panel game-stats-panel">
+    <p class="game-panel__title">Выбрано: {{ selectedCount }}</p>
+  </aside>
+  <aside v-else-if="selectedObject" class="game-panel game-stats-panel">
     <p class="game-panel__title">{{ title }}</p>
     <dl class="game-stats-panel__list">
       <template v-if="isUnit">
         <div class="game-stats-panel__row">
           <dt>Очки жизни</dt>
-          <dd>{{ formatStat(stats.hp) }}</dd>
+          <dd>{{ hpLabel }}</dd>
         </div>
         <div class="game-stats-panel__row">
           <dt>Сила</dt>
@@ -27,7 +30,7 @@
         </div>
         <div class="game-stats-panel__row">
           <dt>Очки жизни</dt>
-          <dd>{{ formatStat(stats.hp) }}</dd>
+          <dd>{{ hpLabel }}</dd>
         </div>
       </template>
     </dl>
@@ -42,9 +45,16 @@ import { getUnitTypeConfig } from '@/game/config/unitTypes.js'
 
 const store = useStore()
 const selectedObject = computed(() => store.getters['units/selectedObject'])
+const selectedCount = computed(() => store.getters['units/selectedIds'].length)
 const isUnit = computed(() => selectedObject.value?.type === 'unit')
 const isBuilding = computed(() => selectedObject.value?.type === 'building')
 const stats = computed(() => selectedObject.value?.stats ?? {})
+
+const hpLabel = computed(() => {
+  const maxHp = selectedObject.value?.maxHp
+  const hp = formatStat(stats.value.hp)
+  return typeof maxHp === 'number' ? `${hp} / ${formatStat(maxHp)}` : hp
+})
 
 const title = computed(() => {
   const object = selectedObject.value

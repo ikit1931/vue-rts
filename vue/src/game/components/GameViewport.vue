@@ -1,28 +1,43 @@
 <template>
-  <div ref="viewportEl" class="game-viewport" tabindex="0">
+  <div
+      ref="viewportEl"
+      class="game-viewport"
+      :class="{ 'game-viewport--panning': isPanning }"
+      tabindex="0"
+  >
     <svg
-      v-if="viewportSize.width && viewportSize.height"
-      class="game-world-svg"
-      :width="viewportSize.width"
-      :height="viewportSize.height"
-      :viewBox="viewBox"
+        v-if="viewportSize.width && viewportSize.height"
+        class="game-world-svg"
+        :width="viewportSize.width"
+        :height="viewportSize.height"
+        :viewBox="viewBox"
     >
       <polygon
-        :points="mapOutlinePoints"
-        class="game-map-fill"
+          :points="mapOutlinePoints"
+          class="game-map-fill"
       />
       <line
-        v-for="(segment, index) in gridLines"
-        :key="`line-${index}`"
-        :x1="segment.x1"
-        :y1="segment.y1"
-        :x2="segment.x2"
-        :y2="segment.y2"
-        :class="segment.isAxis ? 'game-grid-axis' : 'game-grid-line'"
+          v-for="(segment, index) in gridLines"
+          :key="`line-${index}`"
+          :x1="segment.x1"
+          :y1="segment.y1"
+          :x2="segment.x2"
+          :y2="segment.y2"
+          :class="segment.isAxis ? 'game-grid-axis' : 'game-grid-line'"
       />
       <circle cx="0" cy="0" r="4" class="game-origin-marker" />
       <slot />
     </svg>
+    <div
+        v-if="selectionBox"
+        class="game-selection-box"
+        :style="{
+        left: `${selectionBox.x}px`,
+        top: `${selectionBox.y}px`,
+        width: `${selectionBox.width}px`,
+        height: `${selectionBox.height}px`,
+      }"
+    />
   </div>
 </template>
 
@@ -37,7 +52,7 @@ import {
   buildMapOutlinePoints,
 } from '../world/isometricGridLines.js'
 
-const emit = defineEmits(['world-click'])
+const emit = defineEmits(['world-click', 'world-area'])
 const store = useStore()
 const camera = computed(() => store.getters['camera/camera'])
 
@@ -60,10 +75,40 @@ const gridLines = computed(() => buildIsometricGridLines(camera.value))
 
 let resizeObserver
 
-useCameraPan(viewportEl, () => camera.value, {
+const selectionBox = ref(null)
+
+function toSelectionBox({ x1, y1, x2, y2 }) {
+  return {
+    x: Math.min(x1, x2),
+    y: Math.min(y1, y2),
+    width: Math.abs(x2 - x1),
+    height: Math.abs(y2 - y1),
+  }
+}
+
+function screenRectToWorldCorners({ x1, y1, x2, y2 }) {
+  return [
+    [x1, y1],
+    [x2, y1],
+    [x2, y2],
+    [x1, y2],
+  ].map(([sx, sy]) => screenToWorld(sx, sy, camera.value, viewportSize.value))
+}
+
+const { isPanning } = useCameraPan(viewportEl, () => camera.value, {
   onClick: (sx, sy, button, shiftKey) => {
     const { wx, wy} = screenToWorld(sx, sy, camera.value, viewportSize.value)
     emit('world-click', { button, wx, wy, shiftKey })
+  },
+  onSelectionUpdate: (rect) => {
+    selectionBox.value = toSelectionBox(rect)
+  },
+  onSelectionEnd: (rect, shiftKey) => {
+    selectionBox.value = null
+    emit('world-area', { corners: screenRectToWorldCorners(rect), shiftKey })
+  },
+  onSelectionCancel: () => {
+    selectionBox.value = null
   },
   onPanCamera: (deltaWx, deltaWy) => {
     store.dispatch('camera/panCamera', { deltaWx, deltaWy })
@@ -106,13 +151,21 @@ onUnmounted(() => {
   height: 100%;
   overflow: hidden;
   background: #2b2b2b;
-  cursor: grab;
+  cursor: default;
   outline: none;
   touch-action: none;
 
-  &:active {
+  &--panning {
     cursor: grabbing;
   }
+}
+
+.game-selection-box {
+  position: absolute;
+  box-sizing: border-box;
+  border: 1px solid #7dff7d;
+  background: rgba(125, 255, 125, 0.15);
+  pointer-events: none;
 }
 
 .game-world-svg {
