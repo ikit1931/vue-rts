@@ -9,7 +9,13 @@
         :rx="ring.rx"
         :ry="ring.ry"
     />
+    <polygon
+        v-if="isBuilding"
+        class="game-world-object__building"
+        :points="buildingPoints"
+    />
     <circle
+        v-else
         r="8"
         class="game-world-object__marker"
     />
@@ -20,7 +26,7 @@
 import { computed } from 'vue'
 import { useStore } from 'vuex'
 import { worldToProjectedPlane } from '../world/coordinates.js'
-import {ISO_TILE_HEIGHT, ISO_TILE_WIDTH, WORLD_GRID_SIZE} from "@/game/world/worldUnits.js";
+import { ISO_TILE_HEIGHT, ISO_TILE_WIDTH, WORLD_GRID_SIZE } from '@/game/world/worldUnits.js'
 
 const props = defineProps({
   wx: {
@@ -35,6 +41,14 @@ const props = defineProps({
     type: Number,
     default: 16,
   },
+  type: {
+    type: String,
+    default: 'unit',
+  },
+  sizeN: {
+    type: Number,
+    default: 1,
+  },
   selected: {
     type: Boolean,
     default: false,
@@ -44,12 +58,29 @@ const props = defineProps({
 const store = useStore()
 const camera = computed(() => store.getters['camera/camera'])
 
+const isBuilding = computed(() => props.type === 'building')
+const sizeN = computed(() => Math.max(1, props.sizeN || 1))
+
 const position = computed(() =>
   worldToProjectedPlane(props.wx, props.wy, camera.value),
 )
+
 const ring = computed(() => {
+  if (isBuilding.value) {
+    const k = sizeN.value * Math.SQRT2 / 2
+    return {
+      rx: k * ISO_TILE_WIDTH,
+      ry: k * ISO_TILE_HEIGHT,
+    }
+  }
   const k = (props.radius * Math.SQRT2) / WORLD_GRID_SIZE
-  return {rx: k * (ISO_TILE_WIDTH / 2), ry: k * (ISO_TILE_HEIGHT / 2)}
+  return { rx: k * (ISO_TILE_WIDTH / 2), ry: k * (ISO_TILE_HEIGHT / 2) }
+})
+
+const buildingPoints = computed(() => {
+  const halfW = sizeN.value * (ISO_TILE_WIDTH / 2)
+  const halfH = sizeN.value * (ISO_TILE_HEIGHT / 2)
+  return `0,${-halfH} ${halfW},0 0,${halfH} ${-halfW},0`
 })
 </script>
 
@@ -61,6 +92,11 @@ const ring = computed(() => {
 }
 .game-world-object__marker {
   fill: #c9a227;
+  stroke: #1a1208;
+  stroke-width: 2;
+}
+.game-world-object__building {
+  fill: #5a6a7a;
   stroke: #1a1208;
   stroke-width: 2;
 }
