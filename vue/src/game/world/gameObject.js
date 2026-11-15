@@ -1,3 +1,4 @@
+import { DEFAULT_GROUP } from '../config/groups.js'
 import { DEFAULT_BUILDING_STATS, DEFAULT_UNIT_STATS } from './stats.js'
 
 let nextObjectId = 1
@@ -14,6 +15,7 @@ export function createGameObject({
   wx = 0,
   wy = 0,
   radius = 16,
+  group = DEFAULT_GROUP,
   stats = {},
   destination = null,
   ...properties
@@ -24,6 +26,7 @@ export function createGameObject({
     wx,
     wy,
     radius,
+    group,
     destination: destination ? { wx: destination.wx, wy: destination.wy } : null,
     stats: { ...stats },
     ...properties,

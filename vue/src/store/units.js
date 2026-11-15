@@ -1,4 +1,5 @@
-import { getBuildingTypeBySize } from '@/game/config/buildingTypes.js'
+import { BUILDING_TYPES, getBuildingTypeBySize } from '@/game/config/buildingTypes.js'
+import { AVAILABLE_GROUPS, DEFAULT_GROUP } from '@/game/config/groups.js'
 import { getUnitTypeConfig } from '@/game/config/unitTypes.js'
 import { isWorldPointInsideMap } from '@/game/world/bounds.js'
 import { createBuilding, createGameObject, createUnit } from '@/game/world/gameObject.js'
@@ -10,17 +11,29 @@ export default {
     state() {
         return {
             selectedId: null,
+            activeGroup: DEFAULT_GROUP,
             buildMode: { active: false, sizeN: 1 },
             list: [
                 //TODO PLACEHOLDER, нужно делать нормальные конфиги для каждых юнитов
-                createUnit({ id: 'a', wx: 0, wy: 0, radius: 16 }),
-                createUnit({ id: 'b', wx: 120, wy: 80, radius: 16, stats: { speed: 220 } }),
+                createUnit({ id: 'a', wx: 0, wy: 0, radius: 16, group: 1 }),
+                createUnit({ id: 'b', wx: 120, wy: 80, radius: 16, group: 2, stats: { speed: 220 } }),
+                createBuilding({
+                    id: 'enemy-barracks',
+                    wx: 200,
+                    wy: -80,
+                    sizeN: BUILDING_TYPES.barracks.sizeN,
+                    buildingType: BUILDING_TYPES.barracks.buildingType,
+                    spawnUnitType: BUILDING_TYPES.barracks.spawnUnitType,
+                    group: 2,
+                }),
             ],
         }
     },
     getters: {
         units: (state) => state.list,
         selectedId: (state) => state.selectedId,
+        activeGroup: (state) => state.activeGroup,
+        availableGroups: () => AVAILABLE_GROUPS,
         buildMode: (state) => state.buildMode,
         selectedObject: (state) => state.list.find((item) => item.id === state.selectedId) ?? null,
         canSpawnFromSelected: (state, getters) => {
@@ -31,6 +44,9 @@ export default {
     mutations: {
         SELECT(state, id) {
             state.selectedId = id
+        },
+        SET_ACTIVE_GROUP(state, group) {
+            state.activeGroup = AVAILABLE_GROUPS.includes(group) ? group : DEFAULT_GROUP
         },
         SET_BUILD_MODE(state, { active, sizeN = 1 }) {
             state.buildMode = { active: Boolean(active), sizeN: Math.max(1, sizeN) }
@@ -55,6 +71,9 @@ export default {
     actions: {
         select({ commit }, id) {
             commit('SELECT', id)
+        },
+        setActiveGroup({ commit }, group) {
+            commit('SET_ACTIVE_GROUP', group)
         },
         setBuildMode({ commit }, payload) {
             commit('SET_BUILD_MODE', payload)
@@ -97,6 +116,7 @@ export default {
                 sizeN: state.buildMode.sizeN,
                 buildingType: buildingType?.buildingType ?? null,
                 spawnUnitType: buildingType?.spawnUnitType ?? null,
+                group: state.activeGroup,
             })
             commit('ADD_OBJECT', building)
             return building
@@ -120,6 +140,7 @@ export default {
                 radius,
                 unitType: unitConfig.unitType,
                 stats: unitConfig.stats,
+                group: building.group ?? DEFAULT_GROUP,
             })
             commit('ADD_OBJECT', unit)
             return unit

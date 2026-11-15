@@ -15,6 +15,7 @@
           :radius="unit.radius"
           :type="unit.type"
           :size-n="unit.sizeN || 1"
+          :group="unit.group || 1"
           :selected="unit.id === selectedId"
       />
     </GameViewport>

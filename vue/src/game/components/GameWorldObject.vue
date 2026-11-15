@@ -13,11 +13,13 @@
         v-if="isBuilding"
         class="game-world-object__building"
         :points="buildingPoints"
+        :style="{ fill: fillColor }"
     />
     <circle
         v-else
         r="8"
         class="game-world-object__marker"
+        :style="{ fill: fillColor }"
     />
   </g>
 </template>
@@ -25,6 +27,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useStore } from 'vuex'
+import { getGroupColor } from '@/game/config/groups.js'
 import { worldToProjectedPlane } from '../world/coordinates.js'
 import { ISO_TILE_HEIGHT, ISO_TILE_WIDTH, WORLD_GRID_SIZE } from '@/game/world/worldUnits.js'
 
@@ -49,6 +52,10 @@ const props = defineProps({
     type: Number,
     default: 1,
   },
+  group: {
+    type: Number,
+    default: 1,
+  },
   selected: {
     type: Boolean,
     default: false,
@@ -60,6 +67,7 @@ const camera = computed(() => store.getters['camera/camera'])
 
 const isBuilding = computed(() => props.type === 'building')
 const sizeN = computed(() => Math.max(1, props.sizeN || 1))
+const fillColor = computed(() => getGroupColor(props.group))
 
 const position = computed(() =>
   worldToProjectedPlane(props.wx, props.wy, camera.value),
@@ -91,12 +99,10 @@ const buildingPoints = computed(() => {
   stroke-width: 1px;
 }
 .game-world-object__marker {
-  fill: #c9a227;
   stroke: #1a1208;
   stroke-width: 2;
 }
 .game-world-object__building {
-  fill: #5a6a7a;
   stroke: #1a1208;
   stroke-width: 2;
 }

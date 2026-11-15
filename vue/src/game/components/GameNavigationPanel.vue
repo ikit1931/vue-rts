@@ -1,6 +1,21 @@
 <template>
   <aside class="game-nav-panel">
-    <p class="game-nav-panel__title">Постройка</p>
+    <p class="game-nav-panel__title">Группа</p>
+    <div class="game-nav-panel__row">
+      <button
+        v-for="group in availableGroups"
+        :key="group"
+        type="button"
+        class="game-nav-panel__btn"
+        :class="{ 'game-nav-panel__btn--active': activeGroup === group }"
+        :style="{ borderColor: groupColor(group) }"
+        @click="onGroupClick(group)"
+      >
+        {{ group }}
+      </button>
+    </div>
+
+    <p class="game-nav-panel__title game-nav-panel__title--spaced">Постройка</p>
     <div class="game-nav-panel__row">
       <button
         v-for="option in buildOptions"
@@ -38,18 +53,29 @@
 import { computed } from 'vue'
 import { useStore } from 'vuex'
 import { BUILD_OPTIONS } from '@/game/config/buildingTypes.js'
+import { getGroupColor } from '@/game/config/groups.js'
 
 const buildOptions = BUILD_OPTIONS
 
 const store = useStore()
 const buildMode = computed(() => store.getters['units/buildMode'])
+const activeGroup = computed(() => store.getters['units/activeGroup'])
+const availableGroups = computed(() => store.getters['units/availableGroups'])
 const selectedObject = computed(() => store.getters['units/selectedObject'])
 const canSpawn = computed(() => store.getters['units/canSpawnFromSelected'])
 const isUnitSelected = computed(() => selectedObject.value?.type === 'unit')
 const spawnLabel = computed(() => `Создать ${selectedObject.value?.spawnUnitType ?? 'юнита'}`)
 
+function groupColor(group) {
+  return getGroupColor(group)
+}
+
 function isBuildSizeActive(sizeN) {
   return buildMode.value.active && buildMode.value.sizeN === sizeN
+}
+
+function onGroupClick(group) {
+  store.dispatch('units/setActiveGroup', group)
 }
 
 function onBuildSizeClick(sizeN) {
