@@ -5,6 +5,7 @@ import {isBuildingInsideMap, isWorldPointInsideMap} from '@/game/world/bounds.js
 import {formationSlots} from '@/game/world/formation.js'
 import {createBuilding, createGameObject, createUnit} from '@/game/world/gameObject.js'
 import {buildingHalfExtent, objectsOverlap, snapToWorldGrid, WORLD_GRID_SIZE} from '@/game/world/worldUnits.js'
+import {isTerrainAreaSuitable, isTerrainSuitable} from '@/game/world/terrain.js'
 
 function isAliveObject(object) {
     return (object.stats?.hp ?? 1) > 0
@@ -153,17 +154,39 @@ export default {
         advance({dispatch}, elapsedSeconds) {
             return dispatch('game/step', elapsedSeconds, {root: true})
         },
+
         queueMove({getters, rootState, commit}, {wx, wy, append = false, units = getters.selectedUnits}) {
             if (units.length === 0 || !isWorldPointInsideMap(wx, wy) || rootState.game.winner !== null) return
-            const maxRadius = units.reduce(
+
+            const movableUnits = units.filter((unit) =>
+                isTerrainSuitable(wx, wy, unit.radius ?? 16, unit.terrainType ?? 'land')
+            )
+
+            if (movableUnits.length === 0) return
+
+            const maxRadius = movableUnits.reduce(
                 (max, unit) => Math.max(max, unit.radius ?? 16),
                 0
             )
+
             const spacing = Math.max(WORLD_GRID_SIZE, maxRadius * 2 + 1)
-            const slots = formationSlots(wx, wy, units.length, spacing)
-            units.forEach((unit, index) => {
+            const slots = formationSlots(wx, wy, movableUnits.length, spacing)
+
+            movableUnits.forEach((unit, index) => {
                 const slot = slots[index]
-                commit('events/ENQUEUE', {ids: [unit.id], event: {type: 'move', ...slot}, append}, {root: true})
+
+                if (!isTerrainSuitable(
+                    slot.wx, slot.wy, unit.radius ?? 16, unit.terrainType ?? 'land'
+                )) {
+                    return
+                }
+
+                commit('events/ENQUEUE', {
+                    ids: [unit.id],
+                    event: {type: 'move', ...slot},
+                    append,
+                }, {root: true})
+
                 if (!append) commit('SET_DESTINATION', {id: unit.id, ...slot})
             })
         },
@@ -192,8 +215,14 @@ export default {
             commit('ADD_OBJECT', object)
             return object
         },
+
         placeBuilding({state, commit}, {wx, wy}) {
             if (!state.buildMode.active) return null
+
+            const buildingType = state.buildMode.buildingType
+            const buildingConfig = BUILDING_TYPES[buildingType]
+
+            if (!buildingConfig) return null
 
             const snapped = snapToWorldGrid(wx, wy)
             const sizeN = state.buildMode.sizeN
@@ -204,10 +233,19 @@ export default {
                 wx: snapped.wx,
                 wy: snapped.wy,
                 sizeN,
-                buildingType: state.buildMode.buildingType,
+                buildingType,
                 spawnUnitType: state.buildMode.spawnUnitType,
                 group: state.activeGroup,
             })
+
+            if (!isTerrainAreaSuitable(
+                snapped.wx,
+                snapped.wy,
+                buildingHalfExtent(sizeN),
+                building.terrainType,
+            )) {
+                return null
+            }
 
             const occupied = state.list.some(
                 (item) => isAliveObject(item) && objectsOverlap(item, building)
@@ -248,7 +286,14 @@ export default {
                     isWorldPointInsideMap(point.wx - radius, point.wy + radius)
 
                 if (!insideMap) return false
-
+                if (!isTerrainSuitable(
+                    point.wx,
+                    point.wy,
+                    radius,
+                    unitConfig.terrainType ?? 'land'
+                )) {
+                    return false
+                }
                 const candidate = {
                     type: 'unit',
                     wx: point.wx,

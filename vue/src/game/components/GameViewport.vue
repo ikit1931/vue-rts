@@ -16,6 +16,12 @@
           :points="mapOutlinePoints"
           class="game-map-fill"
       />
+      <polygon
+          v-for="tile in waterTiles"
+          :key="tile.key"
+          :points="tile.points"
+          class="game-water-tile"
+      />
       <line
           v-for="(segment, index) in gridLines"
           :key="`line-${index}`"
@@ -51,7 +57,7 @@ import {
   buildIsometricGridLines,
   buildMapOutlinePoints,
 } from '../world/isometricGridLines.js'
-
+import { buildWaterTiles } from '../world/terrain.js'
 const emit = defineEmits(['world-click', 'world-area'])
 const store = useStore()
 const camera = computed(() => store.getters['camera/camera'])
@@ -72,7 +78,7 @@ const viewBox = computed(() => {
 const mapOutlinePoints = computed(() => buildMapOutlinePoints(camera.value))
 
 const gridLines = computed(() => buildIsometricGridLines(camera.value))
-
+const waterTiles = computed(() => buildWaterTiles(camera.value))
 let resizeObserver
 
 const selectionBox = ref(null)
@@ -192,5 +198,10 @@ onUnmounted(() => {
 
 .game-origin-marker {
   fill: #f0f4e7;
+}
+.game-water-tile {
+  fill: #276b91;
+  stroke: #4b9fbe;
+  stroke-width: 0.8;
 }
 </style>

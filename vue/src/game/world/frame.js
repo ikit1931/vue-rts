@@ -8,7 +8,8 @@ function segmentWouldEnterObject(unit, ax, ay, bx, by, objects) {
         by,
         unit.radius ?? 16,
         objects,
-        unit.id
+        unit.id,
+        unit.terrainType
     )
 }
 
@@ -108,7 +109,8 @@ export function calculateNextFrame(objects, queues, elapsedSeconds) {
                     target.wy,
                     nextObjects,
                     unit.radius ?? 16,
-                    unit.id
+                    unit.id,
+                    unit.terrainType
                 )
                 if (path.length > 0) {
                     moveAlongPath(unit, path, elapsedSeconds, nextObjects)

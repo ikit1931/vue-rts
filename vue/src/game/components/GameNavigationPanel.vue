@@ -19,7 +19,7 @@
     <div class="game-panel__row">
       <button
         v-for="option in buildOptions"
-        :key="option.sizeN"
+        :key="option.buildingType"
         type="button"
         class="game-panel__btn"
         :class="{ 'game-panel__btn--active': isBuildOptionActive(option) }"
